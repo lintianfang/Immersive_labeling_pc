@@ -1,0 +1,34 @@
+#version 450
+
+//run in groups of 128
+layout(local_size_x = 128, local_size_y = 1) in;
+
+
+//***** begin interface of point_label.glsl **********************************
+void label_point(in int index, in int point_label, in int point_group_mask);
+void label_point(in uint index, in int point_label);
+int get_label(in uint index);
+//***** end interface of point_label.glsl **********************************
+
+
+//***** begin interface of point_label_history.glsl **********************************
+struct label_operation {
+	int label;
+	uint index;
+};
+void store_point_label(int label, uint point_id);
+label_operation get_operation(uint local_ix);
+uint get_operation_size();
+//***** end interface of point_label_history.glsl **********************************
+
+
+void main() {
+	//TODO add implementation
+	uint id = gl_WorkGroupID.x*128 + gl_LocalInvocationID.x;
+	uint stride = gl_NumWorkGroups.x*128;
+	while (id < get_operation_size()) {
+		label_operation op = get_operation(id);
+		label_point(op.index,op.label);
+		id += stride;
+	}
+}

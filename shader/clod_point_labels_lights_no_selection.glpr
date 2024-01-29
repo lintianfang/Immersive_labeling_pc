@@ -1,0 +1,2 @@
+vertex_file:selection_dummy.glsl
+program:clod_point_labels_lights_base.glpr

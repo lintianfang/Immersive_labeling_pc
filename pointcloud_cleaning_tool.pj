@@ -1,0 +1,16 @@
+@=
+projectType="application_plugin";
+projectName="pointcloud_cleaning_tool";
+projectGUID="7ECEF653-AAC5-41D3-9043-BAF8E334DC24";
+addIncDirs    =[CGV_DIR."/3rd", CGV_DIR."/libs/point_cloud", CGV_BUILD_DIR."/rgbd_icp_tool"];
+addProjectDirs=[CGV_DIR."/plugins", CGV_DIR."/libs", CGV_DIR."/test", CGV_DIR."/3rd"];
+addProjectDeps=["cgv_utils","cgv_type","cgv_data","cgv_base", "cgv_signal", "cgv_reflect", "cgv_media", "cgv_os", "cgv_gui", "cgv_render", 
+                "cgv_viewer","cgv_gl", "cg_fltk", "cg_ext", "cmi_io", "cmv_avi", "crg_grid", "glew",
+				"point_cloud","crg_vr_view","cg_vr","vr_emulator","openvr_driver",
+				"rect_pack", "rgbd_control_no_interactor", "cgv_math"
+];
+addDependencies=["opengl", "glu"];
+addSharedDefines=["POINTCLOUD_CLEANING_TOOL_EXPORTS","CG_NUI_EXPORTS"];
+addCommandLineArguments=[
+	after("type(shader_config):shader_path='".INPUT_DIR."/shader;".CGV_DIR."/libs/cgv_gl/glsl'","cg_fltk"),	'config:"'.INPUT_DIR.'/config.def"'
+];

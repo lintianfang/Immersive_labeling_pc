@@ -1,0 +1,13 @@
+#version 330
+
+//***** begin interface of fragment.glfs ***********************************
+void finish_fragment(vec4 color);
+void finish_fragment(vec4 color, float depth);
+//***** end interface of fragment.glfs ***********************************
+
+in vec4 color_fs;
+
+void main()
+{
+	finish_fragment(color_fs);
+}

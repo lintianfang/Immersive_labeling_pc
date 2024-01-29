@@ -1,0 +1,16 @@
+1:name=man-made terrain
+1:color=d6d6fd
+2:name=natural terrain
+2:color=9ef57a
+3:name=high vegetation
+3:color=7eb121
+4:name=low vegetation
+4:color=8b8234
+5:name=buildings
+5:color=ec4c3a
+6:name=hard scape
+6:color=6236b8
+7:name=scanning artefacts
+7:color=774421
+8:name=cars
+8:color=ad3ebc

@@ -1,0 +1,42 @@
+#version 440
+
+//this shader counts the points inside the shape defined by the linked selection shape shader
+
+//***** begin interface selection_xxxxxx.glsl
+bool is_in_selection(in vec4 view_position);
+//***** end interface selection_xxxxxx.glsl *********************************
+
+// point format
+struct Vertex{
+	float x;
+	float y;
+	float z;
+	uint colors;
+};
+
+//run in groups of 256
+layout(local_size_x = 256, local_size_y = 1) in;
+
+layout(std430, binding = 1) readonly buffer ssPointBuffer {
+	Vertex points[];
+};
+// stores results
+layout(std430, binding = 2) buffer ssResultBuffer{
+	uint nr_points_lod[256];  //init this with zeros before running the shader
+};
+
+uniform mat4 model_transform;
+
+layout(location = 21) uniform int batch_offset;
+layout(location = 22) uniform int batch_size;
+
+void main() {
+	if (gl_GlobalInvocationID.x >= batch_size)
+		return;
+	uint point_index = gl_GlobalInvocationID.x+batch_offset;
+	Vertex v = points[point_index];
+	if(is_in_selection(model_transform*vec4(v.x,v.y,v.z,1.0))) {
+		uint level = (v.colors & 0xFF000000) >> 24;
+		atomicAdd(nr_points_lod[level],1);
+	}
+}

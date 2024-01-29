@@ -1,0 +1,116 @@
+#version 450
+
+//this shader assigns labels to points within a selection
+//datastructures and buffer binding points are based on the clod_point_renderer
+//this shader can run after the reduce step
+
+//run in groups of 128
+layout(local_size_x = 128, local_size_y = 1) in;
+
+// point format
+struct Vertex{
+	float x;
+	float y;
+	float z;
+	uint colors;
+};
+
+layout(std430, binding = 1) buffer ssTargetBuffer{
+	Vertex points[];
+};
+
+layout(std430, binding = 4) buffer ssInputIdBuffer{
+	uint inputIdBuffer[];
+};
+
+
+
+layout(location = 21) uniform int batch_offset;
+layout(location = 22) uniform int batch_size;
+
+layout(location = 25) uniform int point_label;
+
+layout(location = 30) uniform int picked_index;
+
+uniform int point_groups = 0; //points that should be labeled
+uniform int exclude_point_groups = 0; //points that are excluded from labeling, overrides decision if point is selected via point_groups
+
+uniform mat4 model_transform;
+
+uniform int operation = 0;
+
+uniform bool enable_history = true;
+
+// adds label_override_bits to points' effective labels if they are within the defined solid
+uniform vec4 constraint_box_min_p;
+uniform vec4 constraint_box_max_p;
+uniform vec4 constraint_box_translation;
+uniform vec4 constraint_box_rotation;
+
+uniform int label_constraint_bits = 0;
+uniform bool label_constraint_solid_inverted = false;
+
+#define OPERATION_REPLACE 0
+#define OPERATION_OR 1
+#define OPERATION_AND 2
+
+//***** begin interface of point_label.glsl **********************************
+void label_point(in uint index, in int point_label);
+int get_label(in uint index);
+bool point_is_in_group_selection(in uint index, in int point_group_mask, in int exclude_point_group_mask);
+bool label_is_in_group_selection(in int label, in int point_group_mask, in int exclude_point_group_mask);
+//***** end interface of point_label.glsl **********************************
+
+//***** begin interface of point_label_history.glsl **********************************
+void store_point_label(int label, uint point_id);
+//***** end interface of point_label_history.glsl **********************************
+
+
+//***** begin interface selection_xxxxxx.glsl
+bool is_in_selection(in vec4 position);
+//***** end interface selection_xxxxxx.glsl *********************************
+
+//***** begin interface of point_inclusion.glsl ***********************************
+bool is_behind_plane(in vec3 position, vec3 plane_normal, vec3 plane_origin);
+bool is_in_sphere(in vec3 position, in vec3 sphere_translation, in float sphere_radius);
+bool is_in_cuboid(in vec3 position, in vec3 aabb_min_p, in vec3 aabb_max_p, in vec3 translation, in vec4 rotation);
+//***** end interface of point_inclusion.glsl ***********************************
+
+
+void main() {
+	if (gl_GlobalInvocationID.x >= batch_size)
+		return;
+	uint point_index = gl_GlobalInvocationID.x+batch_offset;
+	uint point_id = inputIdBuffer[point_index];
+	Vertex pnt = points[point_index];
+	//do check in world space
+	vec4 point_world = model_transform*vec4(pnt.x,pnt.y,pnt.z,1.0);
+	
+	if (is_in_selection(point_world)) {
+		bool is_in_volume = label_constraint_bits != 0 ? is_in_cuboid(point_world.xyz, constraint_box_min_p.xyz, constraint_box_max_p.xyz, constraint_box_translation.xyz, constraint_box_rotation) : false;
+		is_in_volume = label_constraint_solid_inverted ? !is_in_volume : is_in_volume; 
+		int additional_label_bits = is_in_volume ? label_constraint_bits : 0;
+		
+		int old_label = get_label(point_id);
+		// volume labels can be used for implementing constraints by setting a bit inside the labels group section which is also present in exclude_point_groups
+		int effective_label = old_label | additional_label_bits;
+		if (label_is_in_group_selection(effective_label, point_groups, exclude_point_groups)){
+			
+			switch(operation) {
+			case OPERATION_REPLACE:
+				label_point(point_id, point_label);
+				break;
+			case OPERATION_OR:
+				label_point(point_id, point_label | old_label);
+				break;
+			case OPERATION_AND:
+				label_point(point_id, point_label & old_label);
+				break;
+			}
+			
+			if (old_label != point_label && enable_history)
+				store_point_label(old_label, point_id);
+		}
+
+	}
+}

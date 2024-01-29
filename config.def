@@ -1,0 +1,29 @@
+show all
+
+name(vr interactor):blit_vr_views=true;blit_width=400;blit_aspect_scale=1.3
+
+name(vr interactor):hmd_scale=1.0;hmd_mesh_file_name="generic_hmd.obj"
+name(vr interactor):controller_scale=1.0;controller_mesh_file_name="vr_controller_vive_1_5.obj"
+
+//name(vr interactor):calibration_file_path="C:/develop/git/cgv/plugins/vr_test/table.cal"
+
+type(pointcloud_cleaning_tool):label_palette_file="default.palette"
+
+type(rgbd_control):visualisation_enabled=false
+type(rgbd_control):always_acquire_next=true
+type(rgbd_control):remap_color=false
+
+persistent
+type(pointcloud_cleaning_tool):model_put_on_table=false
+type(pointcloud_cleaning_tool):pointcloud_fit_table=false
+type(pointcloud_cleaning_tool):point_color_based_on_lod=false
+type(pointcloud_cleaning_tool):show_environment=false
+type(pointcloud_cleaning_tool):clod_point_style.CLOD_factor=0.99
+type(pointcloud_cleaning_tool):clod_point_style.spacing=1
+type(pointcloud_cleaning_tool):clod_point_style.scale=1
+type(pointcloud_cleaning_tool):clod_point_style.min_millimeters=1
+type(pointcloud_cleaning_tool):clod_point_style.point_size=1
+type(pointcloud_cleaning_tool):clod_point_style.draw_circles=true
+type(pointcloud_cleaning_tool):max_points=100000000
+type(pointcloud_cleaning_tool):interaction_mode=2
+type(pointcloud_cleaning_tool):point_labeling_tool=false

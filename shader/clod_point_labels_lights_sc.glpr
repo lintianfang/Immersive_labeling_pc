@@ -1,0 +1,3 @@
+vertex_file:quaternion.glsl
+vertex_file:selection_cuboid.glsl
+program:clod_point_labels_lights_base.glpr

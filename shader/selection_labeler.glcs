@@ -1,0 +1,41 @@
+#version 450
+
+// this shader is ment to process all points in the point cloud
+// a point is only relabeled if (point_label & groupmask) == selected_point_label
+
+//run in groups of 128
+layout(local_size_x = 128, local_size_y = 1) in;
+
+layout(location = 10) uniform int new_point_label;
+
+layout(location = 11) uniform int point_group_mask = 0;
+layout(location = 13) uniform int point_exclude_group_mask = 0;
+
+layout(location = 12) uniform int selected_point_label;
+
+layout(location = 21) uniform int batch_offset;
+layout(location = 22) uniform int batch_size;
+
+//***** begin interface of point_label.glsl **********************************
+void label_point(in uint index, in int point_label, in int point_group_mask);
+void label_point(in uint index, in int point_label);
+int get_label(in uint index);
+bool point_is_in_group_selection(in uint index, in int point_group_mask, in int exclude_point_group_mask);
+//***** end interface of point_label.glsl **********************************
+
+//***** begin interface of point_label_history.glsl **********************************
+void store_point_label(int label, uint point_id);
+//***** end interface of point_label_history.glsl **********************************
+
+void main() {
+	if (gl_GlobalInvocationID.x >= batch_size)
+		return;
+	uint point_id = gl_GlobalInvocationID.x + batch_offset;
+	if ( (get_label(point_id) & point_group_mask) == selected_point_label) {
+		if ( (get_label(point_id) & point_exclude_group_mask) == 0) {
+			int old_label = get_label(point_id);
+			label_point(point_id, new_point_label);
+			store_point_label(old_label, point_id);
+		}
+	}
+}

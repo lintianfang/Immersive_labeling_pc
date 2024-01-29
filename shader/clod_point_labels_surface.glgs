@@ -1,0 +1,73 @@
+#version 430
+#extension GL_EXT_geometry_shader4 : enable
+
+layout(points) in;
+layout(triangle_strip, max_vertices = 4) out;
+
+uniform float pixel_extent_per_depth;
+
+uniform mat4 modelview;
+uniform mat4 projection;
+
+in vec4 color_gs[];
+in float point_size_gs[];
+in float radius_gs[];
+in float linear_depth_gs[];
+in int label_gs[];
+in vec3 normal_gs[];
+
+out vec2 uv;
+out vec4 color_fs;
+out vec3 normal_fs;
+out vec3 position_fs;
+
+flat out int side_fs;
+
+//***** begin interface of view.glsl ***********************************
+mat4 get_modelview_matrix();
+mat4 get_projection_matrix();
+mat4 get_modelview_projection_matrix();
+mat4 get_inverse_modelview_matrix();
+mat4 get_inverse_modelview_projection_matrix();
+mat3 get_normal_matrix();
+mat3 get_inverse_normal_matrix();
+//***** end interface of view.glsl ***********************************
+
+void emit_corner(in vec3 corner,in vec3 normal, float u, float v)
+{
+	uv = vec2(u,v);
+	position_fs = corner;
+	// compute position in clip space
+	gl_Position	= projection * vec4(corner,1.0);
+	normal_fs = normal;
+	EmitVertex();
+}
+
+
+void main()
+{
+	if (label_gs[0] == 0)
+		return;
+	
+	// set color to color attribute
+	color_fs = color_gs[0];
+	// transform position to eye space
+	vec4 p4d = modelview*gl_PositionIn[0];
+	vec3 position_eye = p4d.xyz/p4d.w;
+	// compute extent of a pixel at point depth in eye coordinates
+	//float pixel_extent = pixel_extent_per_depth * abs(position_eye.z);
+	float pixel_extent = pixel_extent_per_depth*linear_depth_gs[0];
+	// compute point radius from input point size
+	float splat_radius = 0.5 * point_size_gs[0] * pixel_extent;
+	// compute scaled splat base vectors
+	vec2 d = vec2(splat_radius ,0.0);
+	
+	vec3 normal = get_normal_matrix()*normal_gs[0];
+	side_fs = (dot(normal, position_eye) < 0.0) ? 1 : 0;
+	
+	// generate splat vertices
+	emit_corner(position_eye + d.xyy - d.yxy, normal, 1.0, -1.0);
+	emit_corner(position_eye + d.xyy + d.yxy, normal, 1.0, 1.0);
+	emit_corner(position_eye - d.xyy - d.yxy, normal,-1.0, -1.0);
+	emit_corner(position_eye - d.xyy + d.yxy, normal,-1.0, 1.0);
+}

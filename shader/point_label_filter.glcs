@@ -1,0 +1,49 @@
+//set groups based on label
+
+//run in groups of 256
+layout(local_size_x = 256, local_size_y = 1) in;
+
+//***** begin interface of point_label.glsl **********************************
+void label_point(in uint index, in int point_label, in int point_group_mask);
+void label_point(in uint index, in int point_label);
+int get_label(in uint index);
+//***** end interface of point_label.glsl **********************************
+
+#define POINT_GROUP_MASK 0xFFFF
+#define POINT_GROUP_BITS 16
+
+layout(location = 20) uniform int mode; 
+//0: label == target_label 
+//1: label != target_label
+
+layout(location = 21) uniform int batch_offset;
+layout(location = 22) uniform int batch_size;
+
+layout(location = 23) uniform int target_label;
+layout(location = 24) uniform int new_groups;
+layout(location = 25) uniform int visible_groups = POINT_GROUP_MASK;
+//set new groups on visible points which labels fullfill the given condition
+void main() {
+	if (gl_GlobalInvocationID.x >= batch_size)
+		return;
+	uint point_index = gl_GlobalInvocationID.x+batch_offset;
+	
+	int label = get_label(point_index);
+	int label_number = label >> POINT_GROUP_BITS;
+	int label_group = label & POINT_GROUP_MASK
+	if (label_group & visible_groups) {
+		switch(mode){
+			case 0: //set new group if label_number == target_label
+				if (label_number != target_label){
+					return;
+				}
+				break;
+			case 1://set new group if label_number != target_label
+				if (label_number == target_label){
+					return;
+				}
+				break;	
+		}
+		label_point(point_index, (label & (~POINT_GROUP_MASK)) | (new_groups&POINT_GROUP_MASK));
+	}
+}

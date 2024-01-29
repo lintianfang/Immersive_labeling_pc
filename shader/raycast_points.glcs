@@ -1,0 +1,122 @@
+#version 450
+
+/*
+This raycast shader treats each point as a sphere with the radius given by the sphere_radius uniform.
+The pointcloud is segmented into groups with 128 points each before running this shader.
+A ray-sphere intersection test that runs for each point in a 128-point group solves the equation (1) for t if possible
+(1): |p+ray_direction*t| = sphere_radius with p = ray_origin-point.
+Goal is to find the nearest ray intersection with t >= 0 for all points intersected.
+The better solution for each point is written to local_point_t[gl_LocalInvocationID.x] and is compared to the previous best value for t in the group. 
+After the second barrier, best_local_point_ix will contain gl_LocalInvocationID.x of the thread with the best solution for t in the group.
+
+One thread of each group then compares the group's best solution to the current global best solution.
+The smallest t >= 0 is now stored in group_results[best_group_ix].t and the point index in group_results[best_group_ix].global_point_ix
+*/
+
+//run in groups of 128
+layout(local_size_x = 128, local_size_y = 1) in;
+
+// point format
+struct Vertex{
+	float x;
+	float y;
+	float z;
+	uint colors;
+};
+
+layout(std430, binding = 1) buffer ssTargetBuffer{
+	Vertex points[];
+};
+
+struct results {
+	uint global_point_ix; //index of point with min t
+	float t; // calculated parameter t
+};
+
+//results
+layout(std430, binding = 0) buffer ssResultBuffer{
+	uint best_group_ix; //points to group with best result
+};
+
+layout(std430, binding = 20) buffer ssResults2Buffer{
+	results group_results[]; //stores best result of every working group
+};
+
+layout(location = 1) uniform float sphere_radius;
+layout(location = 2) uniform vec4 ray_direction;
+layout(location = 3) uniform vec4 ray_origin;
+
+layout(location = 4) uniform mat4 model_transform;
+
+layout(location = 22) uniform int batch_size;
+
+#define POINT_DELETED 0
+
+shared uint best_local_point_ix;
+
+shared float local_point_t[128];
+
+void main() {	
+	// initialize best_local_point_ix
+	
+	if (gl_LocalInvocationID.x == 0)
+		best_local_point_ix = 0;
+	
+	bool valid = gl_GlobalInvocationID.x < batch_size;
+	const float infinity = uintBitsToFloat(0x7F800000);
+	
+	float t = infinity;
+
+	if (valid) {
+		uint point_ix = gl_GlobalInvocationID.x;
+	
+		Vertex v = points[point_ix];
+		vec4 sphere_center = model_transform*vec4(v.x,v.y,v.z,1.0);
+		//redefinition of ray origin
+		vec3 p = ray_origin.xyz-sphere_center.xyz;
+		
+		//float a = dot(ray_direction.xyz,ray_direction.xyz);
+		float b = dot(2.0*p,ray_direction.xyz);
+		float c = dot(p.xyz,p.xyz);
+		
+		
+		//solve for intersection points
+		float dp = dot(ray_direction.xyz,p.xyz);
+		float pp = dot(p,p)-sphere_radius*sphere_radius;
+		
+		if (dp*dp-pp < 0.0)
+			return;
+		
+		float tc = sqrt(dp*dp-pp);
+		float t1 = -dp + tc;
+		float t2 = -dp - tc;
+
+		t = min(t1,t2);
+	}
+	local_point_t[gl_LocalInvocationID.x] = t;
+	
+	barrier();
+	
+	if (valid) {
+		//find best local point
+		uint old_best_local_point_ix = best_local_point_ix;
+		while (t < local_point_t[old_best_local_point_ix] && t >= 0.0) {
+			old_best_local_point_ix = atomicCompSwap(best_local_point_ix, old_best_local_point_ix, gl_LocalInvocationID.x);
+		}
+	}
+	barrier();
+	
+	if (gl_LocalInvocationID.x == 0) {
+		
+		uint p = gl_GlobalInvocationID.x + best_local_point_ix;
+		//write to results
+		group_results[gl_WorkGroupID.x].global_point_ix = p;
+		group_results[gl_WorkGroupID.x].t = local_point_t[best_local_point_ix];
+		
+		uint old_best_group = best_group_ix;
+		float best_local_t =  local_point_t[best_local_point_ix];
+		while ( (old_best_group == -1 || best_local_t < group_results[old_best_group].t) && best_local_t >= 0.0) {
+			old_best_group = atomicCompSwap(best_group_ix,old_best_group, gl_WorkGroupID.x);
+		}
+	}
+}

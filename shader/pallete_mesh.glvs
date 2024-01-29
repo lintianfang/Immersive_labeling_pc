@@ -1,0 +1,38 @@
+#version 330
+
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec4 color;
+layout(location = 2) in vec4 offset;
+
+uniform mat4 model_matrix;
+
+out vec4 color_fs;
+
+//***** begin interface of view.glsl ***********************************
+mat4 get_modelview_matrix();
+mat4 get_projection_matrix();
+mat4 get_inverse_projection_matrix();
+mat4 get_modelview_projection_matrix();
+vec3 get_eye_world();
+mat4 get_inverse_modelview_matrix();
+mat4 get_inverse_modelview_projection_matrix();
+mat3 get_normal_matrix();
+mat3 get_inverse_normal_matrix();
+//***** end interface of view.glsl ***********************************
+
+//***** begin interface of quaternion.glsl ***********************************
+vec4 unit_quaternion();
+vec3 rotate_vector_with_quaternion(in vec3 preimage, in vec4 q);
+vec3 inverse_rotate_vector_with_quaternion(in vec3 v, in vec4 q);
+void quaternion_to_axes(in vec4 q, out vec3 x, out vec3 y, out vec3 z);
+void quaternion_to_matrix(in vec4 q, out mat3 M);
+void rigid_to_matrix(in vec4 q, in vec3 t, out mat4 M);
+//***** end interface of quaternion.glsl ***********************************
+
+void main()
+{
+	color_fs = color;
+	// transform vertex to clip space
+	vec3 transformed_position = (model_matrix*vec4(position,1.0)).xyz+offset.xyz;
+	gl_Position = get_modelview_projection_matrix()*vec4(transformed_position.xyz,1.0);
+}

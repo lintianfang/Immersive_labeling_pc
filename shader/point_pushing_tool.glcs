@@ -1,0 +1,100 @@
+#version 450
+
+//this shader assigns labels to points within a sphere given by the radius and position uniforms
+//datastructures and buffer binding points are based on the clod_point_renderer
+//this shader can run after the reduce step
+
+//run in groups of 128
+layout(local_size_x = 128, local_size_y = 1) in;
+
+// point format
+struct Vertex{
+	float x;
+	float y;
+	float z;
+	uint colors;
+};
+
+layout(std430, binding = 1) buffer ssTargetBuffer{
+	Vertex points[];
+};
+
+layout(std430, binding = 4) buffer ssInputIdBuffer {
+	uint inputIdBuffer[];
+}; //chunk_a_ids;
+
+layout(location = 21) uniform int batch_offset;
+layout(location = 22) uniform int batch_size;
+
+
+uniform int point_groups = 0;
+
+uniform mat4 model_transform;
+uniform mat4 inv_model_transform;
+
+//TODO need last pose and current pose in selection_xxxxxx.glsl
+
+#define POINT_VISIBLE 1
+#define POINT_DELETED 0
+#define POINT_GROUP_MASK 0xFFFF
+
+//***** begin interface of point_label.glsl **********************************
+void label_point(in uint index, in int point_label, in int point_group_mask);
+void label_point(in uint index, in int point_label);
+int get_label(in uint index);
+//***** end interface of point_label.glsl **********************************
+
+//***** begin interface of point_label_history.glsl **********************************
+void store_point_label(int label, uint point_id);
+//***** end interface of point_label_history.glsl **********************************
+
+
+//***** begin interface selection_xxxxxx.glsl
+bool is_in_selection(in vec4 view_position);
+bool resolve_collision(in vec4 position, out vec4 new_position, out vec3 collision_normal);
+//***** end interface selection_xxxxxx.glsl *********************************
+
+//***** begin interface of point_cloud_chunk.glsl **********************************
+bool is_inside_chunk_a(in vec3 pnt);
+uint move_point_to_chunk_b(inout Vertex vert, inout uint point_id);
+//***** end interface of point_cloud_chunk.glsl **********************************
+
+
+void main() {
+	if (gl_GlobalInvocationID.x >= batch_size)
+		return;
+	
+	uint point_id = gl_GlobalInvocationID.x+batch_offset;
+	
+	if (inputIdBuffer[point_id] == -1){
+		return;
+	}
+	
+	if (get_label(inputIdBuffer[point_id]) == POINT_DELETED) {
+		return;
+	}
+	
+	Vertex pnt = points[point_id];
+	//do collsion resolution in world space
+	vec4 point_pos = model_transform*vec4(pnt.x,pnt.y,pnt.z,1.0);
+	vec4 new_pos;
+	vec3 normal;
+	if (resolve_collision(point_pos,new_pos,normal)){
+		new_pos = inv_model_transform*new_pos;
+		
+		//if the point is still in our chunk after the relocation we only change the position coordinates
+		points[point_id].x = new_pos.x;
+		points[point_id].y = new_pos.y;
+		points[point_id].z = new_pos.z;
+			
+		//the point should be inside the current chunk before relocation
+		if (!is_inside_chunk_a(new_pos.xyz)){
+			//TODO migrate point to a new chunk
+			//in case of the point laying outside of our origin chunk 
+			//the point needs to be migrated into an intermediate cache chunk that spans the entire pointcloud
+			move_point_to_chunk_b(points[point_id], inputIdBuffer[point_id]);
+		}
+
+		//TODO handle chunks
+	}
+}

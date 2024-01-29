@@ -1,0 +1,41 @@
+#version 430
+
+
+uniform bool draw_circles;
+
+in vec4 color_fs;
+in vec2 uv;
+in vec3 normal_fs;
+in vec3 position_fs;
+flat in int side_fs;
+
+//***** begin interface of fragment.glfs ***********************************
+uniform float gamma = 2.2;
+void finish_fragment(vec4 color);
+//***** end interface of fragment.glfs ***********************************
+
+//***** begin interface of surface.glsl ***********************************
+vec4 compute_reflected_appearance(vec3 position_eye, vec3 normal_eye, vec4 color, int side);
+vec4 compute_reflected_appearance_texture(vec3 position_eye, vec3 normal_eye, vec2 texcoords, vec4 color, int side);
+//***** end interface of surface.glsl ***********************************
+
+//***** begin interface of view.glsl ***********************************
+mat4 get_modelview_matrix();
+mat4 get_projection_matrix();
+mat4 get_modelview_projection_matrix();
+mat4 get_inverse_modelview_matrix();
+mat4 get_inverse_modelview_projection_matrix();
+mat3 get_normal_matrix();
+mat3 get_inverse_normal_matrix();
+//***** end interface of view.glsl ***********************************
+
+void main()
+{
+	if(draw_circles){
+		float percentual_radial_position = length(uv);
+		if (percentual_radial_position > 1.0)
+			discard;
+	}
+	vec4 fragment_color = compute_reflected_appearance(position_fs, normal_fs, color_fs, side_fs);
+	finish_fragment(fragment_color);
+}

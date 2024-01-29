@@ -1,0 +1,52 @@
+#version 440
+
+//***** begin interface of point_label.glsl **********************************
+void label_point(in uint index, in int point_label, in int point_group_mask);
+void label_point(in uint index, in int point_label);
+int get_label(in uint index);
+//***** end interface of point_label.glsl **********************************
+
+layout(std430, binding = 4) buffer ssInputIdBuffer{
+	uint input_ids[];
+};
+
+layout(std430, binding = 0) buffer ssResultBuffer{
+	uint results_size;
+	uint results[];
+};
+
+layout(local_size_x = 256, local_size_y = 1) in;
+layout(location = 1) uniform int point_group_mask;
+layout(location = 22) uniform uint batch_size;
+
+shared uint local_points[256];
+shared uint local_points_count;
+
+void main() {
+	if (gl_GlobalInvocationID.x >= batch_size) {
+		return;
+	}
+	
+	if (gl_LocalInvocationID.x == 0){
+		local_points_count = 0;
+	}
+	
+	uint point_id = input_ids[gl_GlobalInvocationID.x];
+	int x = get_label(point_id) & point_group_mask;
+	
+	barrier();
+	
+	if (x != 0){
+		uint ix = atomicAdd(local_points_count, 1);
+		local_points[ix] = gl_GlobalInvocationID.x;
+	}
+	
+	barrier();
+	
+	if (gl_LocalInvocationID == 0){
+		uint start = atomicAdd(results_size,local_points_count);
+		for (int i=0; i<local_points_count;++i){
+			results[start+i] = local_points[i];
+		}
+	}
+}

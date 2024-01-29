@@ -1,0 +1,13 @@
+vertex_file:clod_point_labels.glvs
+geometry_file:clod_point_labels_surface.glgs
+fragment_file:clod_point_labels_surface.glfs
+vertex_file:view.glsl
+vertex_file:point_clod.glsl
+vertex_file:point_label.glsl
+vertex_file:clod_effects.glsl
+geometry_file:view.glsl
+fragment_file:fragment.glfs
+fragment_file:surface.glsl
+fragment_file:lights.glsl
+fragment_file:brdf.glsl
+fragment_file:side.glsl
