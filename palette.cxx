@@ -373,14 +373,14 @@ namespace vrui {
 
 		if (palette_changed) {
 			//palette_changed = false;
-			std::cout << "sphere_indices: " << sphere_indices.size() << std::endl;
+			//std::cout << "sphere_indices: " << sphere_indices.size() << std::endl;
 			if (sphere_indices.size() > 0) {
 				palette_sphere_renderer.set_render_style(p_sphere_style);
 				palette_sphere_renderer.set_position_array(ctx, palette_object_positions);
 				palette_sphere_renderer.set_color_array(ctx, palette_object_colors);
 				palette_sphere_renderer.set_indices(ctx, sphere_indices);
 			}
-			std::cout << "box_indices: " << box_indices.size() << std::endl;
+			//std::cout << "box_indices: " << box_indices.size() << std::endl;
 			quat object_rotation = object_tilt;
 			std::vector<quat> rotations = std::vector<quat>(palette_object_shapes.size(), object_rotation);
 			if (box_indices.size() > 0) {
@@ -391,7 +391,7 @@ namespace vrui {
 				palette_box_renderer.set_indices(ctx, box_indices);
 			}
 
-			std::cout << "plane_indices: " << plane_indices.size() << std::endl;
+			//std::cout << "plane_indices: " << plane_indices.size() << std::endl;
 			p_plane_style.default_extent = vec3(0.04, 0.005, 0.04);
 			if (plane_indices.size() > 0) {
 				palette_plane_renderer.set_render_style(p_plane_style);
@@ -400,7 +400,7 @@ namespace vrui {
 				palette_plane_renderer.set_color_array(ctx, palette_object_colors);
 				palette_plane_renderer.set_indices(ctx, plane_indices);
 			}
-			std::cout << "box_wire_indices: " << box_wire_indices.size() << std::endl;
+			//std::cout << "box_wire_indices: " << box_wire_indices.size() << std::endl;
 			if (box_wire_indices.size() > 0) {
 				palette_box_wire_renderer.set_render_style(p_box_wire_style);
 				palette_box_wire_renderer.set_position_array(ctx, palette_object_positions);
@@ -438,7 +438,7 @@ namespace vrui {
 			p_box_plane_style.rounding = true;
 			p_box_plane_style.default_extent = vec3(0.04, 0.01, 0.04);
 			p_box_plane_style.default_radius = 0.0075f;
-			std::cout << "box_plane_indices: " << box_plane_indices.size() << std::endl;
+			//std::cout << "box_plane_indices: " << box_plane_indices.size() << std::endl;
 			if (box_plane_indices.size() > 0) {
 				palette_box_plane_renderer.set_render_style(p_box_plane_style);
 				palette_box_plane_renderer.set_position_array(ctx, palette_object_positions);

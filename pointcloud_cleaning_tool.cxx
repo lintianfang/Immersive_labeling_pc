@@ -124,8 +124,8 @@ pointcloud_cleaning_tool::pointcloud_cleaning_tool() : palette_clipboard_record_
 	cgv::pointcloud::ref_octree_lod_generator<pct::indexed_point>(1); // initialize and/or increment ref count of lod generator singelton
 	
 	//add a record for the label palette
-	std::unique_ptr<point_cloud_record> rec = std::make_unique<point_cloud_record>();
-
+	//std::unique_ptr<point_cloud_record> rec = std::make_unique<point_cloud_record>();
+	//initialize the registration listener event and add the listener into clipboard event
 	point_cloud_registration = point_cloud_registration_tool(clipboard_ptr);
 	clipboard_ptr->register_event_listener(&point_cloud_registration);
 
@@ -2798,7 +2798,7 @@ void pointcloud_cleaning_tool::on_throttle_threshold(const int ci, const bool lo
 				break;
 			case RGBDInputModeTools::Fuse:
 			{
-				static constexpr int default_label = 0; //assigned to new points
+				static constexpr int default_label = 0; //assigned to new points, default as 0
 
 				auto* pc_ptr = point_cloud_registration.get_point_cloud();
 				if (pc_ptr) {
@@ -3754,6 +3754,40 @@ void pointcloud_cleaning_tool::on_clear_comparison_point_cloud_cb()
 	post_redraw();
 }
 
+void pointcloud_cleaning_tool::on_load_extra_point_cloud_cb()
+{
+	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
+	if (fn.empty())
+		return;
+
+	//read new pointcloud	
+	pc_extra.read(fn);
+	std::cout << "pc_extra.read done." << std::endl;
+	if (file_contains_label_groups && pc_extra.has_labels()) {
+		size_t num_points = pc_extra.get_nr_points();
+		for (size_t i = 0; i < num_points; ++i) {
+			pc_extra.label(i) = (pc_extra.label(i) >> 16);
+		}
+	}
+
+	std::cout << "loaded extra pointcloud " << fn << " with " << pc_extra.get_nr_points() << " points!\n";
+}
+
+void pointcloud_cleaning_tool::on_merge_pc_cb()
+{
+	if (pc_extra.get_nr_points()>0)
+		source_point_cloud.append(pc_extra);
+
+	prepare_point_cloud();
+	std::cout << "prepare_merge_point_cloud done." << std::endl;
+
+	if (pointcloud_fit_table) {
+		on_point_cloud_fit_table();
+		std::cout << "automatic_scale_to_fit_table done." << std::endl;
+	}
+	post_redraw();
+}
+
 void pointcloud_cleaning_tool::on_load_CAD_cb() {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
@@ -4366,7 +4400,7 @@ void pointcloud_cleaning_tool::update_interaction_mode(const InteractionMode im)
 	else {
 		spacing_tool_enabled = false;
 	}
-	
+	// get point cloud from RGB-D camera
 	if (im == InteractionMode::RGBD_INPUT) {
 		fetch_from_rgbd(true);
 	}
@@ -4682,6 +4716,8 @@ void pointcloud_cleaning_tool::create_gui()
 	connect_copy(add_button("load_1")->click, rebind(this, &pointcloud_cleaning_tool::on_load_comparison_point_cloud_1_cb));
 	connect_copy(add_button("load_2")->click, rebind(this, &pointcloud_cleaning_tool::on_load_comparison_point_cloud_2_cb));
 	connect_copy(add_button("compare")->click, rebind(this, &pointcloud_cleaning_tool::on_load_comparison_point_cloud_cb));
+	connect_copy(add_button("load extra")->click, rebind(this, &pointcloud_cleaning_tool::on_load_extra_point_cloud_cb));
+	connect_copy(add_button("merge")->click, rebind(this, &pointcloud_cleaning_tool::on_merge_pc_cb));
 
 	connect_copy(add_button("loadCAD")->click, rebind(this, &pointcloud_cleaning_tool::on_load_CAD_cb));
 	connect_copy(add_button("showmesh")->click, rebind(this, &pointcloud_cleaning_tool::draw_mesh));

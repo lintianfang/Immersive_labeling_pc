@@ -41,6 +41,7 @@ namespace pct { //namespace of point cloud cleaning tool
 	{
 
 		std::shared_ptr<point_cloud_clipboard> clipboard;
+		// these 2 point clouds are for registration tool
 		std::array<clipboard_record_id, 2> point_cloud_ids = {-1,-1};
 		
 	public:

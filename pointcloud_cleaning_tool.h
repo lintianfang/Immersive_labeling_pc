@@ -233,6 +233,9 @@ protected:
 	void on_load_comparison_point_cloud_2_cb();
 	void on_load_comparison_point_cloud_cb();
 	void on_clear_comparison_point_cloud_cb();
+	//for loading extra point cloud
+	void on_load_extra_point_cloud_cb();
+	void on_merge_pc_cb();
 	void on_load_CAD_cb();
 	///reacts on trigger crossing the threshold
 	void on_throttle_threshold(const int ci, const bool low_high);
@@ -417,6 +420,8 @@ private:
 	//for comparing two point clouds
 	point_cloud pc_1;
 	point_cloud pc_2;
+	//for loading extra point cloud from drive
+	point_cloud pc_extra;
 	
 
 	GLint visible_point_groups;

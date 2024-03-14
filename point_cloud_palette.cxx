@@ -97,7 +97,7 @@ namespace vrui {
 		if (record.points) {
 			generate_preview(*record.points, point_positions, point_colors, preview_detail_level);
 		}
-
+		std::cout << "rid: " << rid << std::endl;
 		//add preview to palette
 		auto* h = find_next_empty_slot();
 		if (h) {
