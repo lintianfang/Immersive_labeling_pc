@@ -1,5 +1,18 @@
 An Immersive Lableing Method for Large Point Clouds.
 
+Our paper is accepted in the journal Computers & Graphics.
+
+Please cite using:
+
+@article{lin2024immersive,
+  title={An immersive labeling method for large point clouds},
+  author={Lin, Tianfang and Yu, Zhongyuan and McGinity, Matthew and Gumhold, Stefan},
+  journal={Computers \& Graphics},
+  pages={104101},
+  year={2024},
+  publisher={Elsevier}
+}
+
 Setup: Our method is implemented in C++ with OpenGL and OpenVR. Our test system was equipped with an Intel Core i7-9700F with 8×3.0GHz, 16 GB RAM and an Nvidia GeForce RTX 2080 with 8GB VRAM. Current button design is for HTC Vive Pro.
 
 Build Instructions:
