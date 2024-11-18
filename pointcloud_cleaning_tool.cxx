@@ -124,8 +124,8 @@ pointcloud_cleaning_tool::pointcloud_cleaning_tool() : palette_clipboard_record_
 	cgv::pointcloud::ref_octree_lod_generator<pct::indexed_point>(1); // initialize and/or increment ref count of lod generator singelton
 	
 	//add a record for the label palette
-	//std::unique_ptr<point_cloud_record> rec = std::make_unique<point_cloud_record>();
-	//initialize the registration listener event and add the listener into clipboard event
+	std::unique_ptr<point_cloud_record> rec = std::make_unique<point_cloud_record>();
+
 	point_cloud_registration = point_cloud_registration_tool(clipboard_ptr);
 	clipboard_ptr->register_event_listener(&point_cloud_registration);
 
@@ -142,8 +142,8 @@ pointcloud_cleaning_tool::pointcloud_cleaning_tool() : palette_clipboard_record_
 
 	draw_teleport_destination = false;
 	show_teleport_ray = true;
-	teleport_spere_radius_factor = 0.1;
-	teleport_ray_radius = 0.125;
+	teleport_spere_radius_factor = 0.04;
+	teleport_ray_radius = 0.03;
 
 	srs.radius = 0.12f;
 	ars.length_scale = 0.05f;
@@ -158,7 +158,7 @@ pointcloud_cleaning_tool::pointcloud_cleaning_tool() : palette_clipboard_record_
 	//plane_length = 0.05f;
 	plane_box_rhand = box3(vec3(-0.001f, -0.1f, -0.1f), vec3(0.001f, 0.1f, 0.1f));
 
-	(InteractionMode)interaction_mode == InteractionMode::LABELING;
+	interaction_mode = InteractionMode::TELEPORT;
 
 	world.build_scene(5, 7, 3, 0.2f, 1.6f, 0.8f, table_height, 0.03f);
 
@@ -275,6 +275,7 @@ pointcloud_cleaning_tool::pointcloud_cleaning_tool() : palette_clipboard_record_
 
 	tra_hmd = false;
 	is_show_tra = false;
+	adapt_clod = false;
 }
 
 pointcloud_cleaning_tool::~pointcloud_cleaning_tool()
@@ -324,6 +325,7 @@ bool pointcloud_cleaning_tool::self_reflect(cgv::reflect::reflection_handler & r
 		rh.reflect_member("show_environment", world.show_environment) &&
 		rh.reflect_member("show_table", world.show_table) &&
 		rh.reflect_member("show_controller_button_labels", show_controller_labels) &&
+		rh.reflect_member("show_left_bar", show_left_bar) &&
 		rh.reflect_member("show_help_always_visible", always_show_help) &&
 		rh.reflect_member("clod_point_style", source_point_cloud.ref_render_style()) &&
 		rh.reflect_member("chunk_size", preparation_settings.chunk_cube_size) &&
@@ -395,6 +397,7 @@ void pointcloud_cleaning_tool::on_set(void * member_ptr)
 		point_server_ptr->configure_timers(enable_performance_stats, enable_performance_stats);
 	}
 	update_member(member_ptr);
+	post_redraw();
 }
 ///
 void pointcloud_cleaning_tool::on_register()
@@ -612,10 +615,10 @@ bool pointcloud_cleaning_tool::init(cgv::render::context& ctx)
 				"Trackpad of Right Controller:\n"
 				" up down   : move\n"
 				" left right: change shape\n"
+				" right: paste"
 				"Grip Button of Right Controller:\n"
 				" with plane selected: invert\n"
 				" with box frame: set label\n"
-				" with clipboard: paste\n"
 				"Menu buttons:\n"
 				" right: copy selected points\n"
 				" left: rollback last operation\n",
@@ -626,16 +629,16 @@ bool pointcloud_cleaning_tool::init(cgv::render::context& ctx)
 			tool_help_label_offset, tool_label_ori, tool_help_label_coordinate_system, LA_LEFT, tool_label_scale);
 		text_labels.hide_label(li);
 
-
 		controller_label_variants[1][InteractionMode::LABELING][CLP_TRACKPAD_RIGHT].push_back(
-			controller_labels[1].add_variant(CLP_TRACKPAD_RIGHT, "next shape", controller_label_color));
-		
+			controller_labels[1].add_variant(CLP_TRACKPAD_RIGHT, "shape->", controller_label_color));
+
 		box_is_constraint_label_variant = controller_labels[1].add_variant(CLP_TRACKPAD_RIGHT, "constraint", controller_label_color);
 
-		controller_label_variants[1][InteractionMode::LABELING][CLP_TRACKPAD_LEFT].push_back(
-			controller_labels[1].add_variant(CLP_TRACKPAD_LEFT, "prev. shape", controller_label_color));
-		clear_box_label_variant = controller_labels[1].add_variant(CLP_TRACKPAD_LEFT, "clear box", controller_label_color);
+		paste_is_shown = controller_labels[1].add_variant(CLP_TRACKPAD_RIGHT, "paste", controller_label_color);
 
+		controller_label_variants[1][InteractionMode::LABELING][CLP_TRACKPAD_LEFT].push_back(
+			controller_labels[1].add_variant(CLP_TRACKPAD_LEFT, "<-shape", controller_label_color));
+		clear_box_label_variant = controller_labels[1].add_variant(CLP_TRACKPAD_LEFT, "clear box", controller_label_color);
 
 		// reserve some space for each pickable shape + paste mode
 		controller_label_variants[1][InteractionMode::LABELING][CLP_GRIP].resize(selection_shape::NUM_OF_SHAPES + 1, -1);
@@ -647,19 +650,17 @@ bool pointcloud_cleaning_tool::init(cgv::render::context& ctx)
 
 		controller_label_variants[1][InteractionMode::LABELING][CLP_GRIP][selection_shape::SS_PLANE] =
 			controller_labels[1].add_variant(CLP_GRIP, "invert", controller_label_color);
-		paste_mode_controller_label_variant_index = selection_shape::NUM_OF_SHAPES;
-		controller_label_variants[1][InteractionMode::LABELING][CLP_GRIP][paste_mode_controller_label_variant_index] =
-			controller_labels[1].add_variant(CLP_GRIP, "paste", controller_label_color);
+		//paste_mode_controller_label_variant_index = selection_shape::NUM_OF_SHAPES;
+		//controller_label_variants[1][InteractionMode::LABELING][CLP_GRIP][paste_mode_controller_label_variant_index] =
+			//controller_labels[1].add_variant(CLP_GRIP, "paste", controller_label_color);
 		controller_label_variants[0][InteractionMode::LABELING][CLP_GRIP].push_back(
 			controller_labels[0].add_variant(CLP_GRIP, "scale", controller_label_color));
-
 
 		controller_label_variants[1][InteractionMode::LABELING][CLP_MENU_BUTTON].push_back(
 			controller_labels[1].add_variant(CLP_MENU_BUTTON, "copy", controller_label_color));
 		controller_label_variants[0][InteractionMode::LABELING][CLP_MENU_BUTTON].push_back(
 			controller_labels[0].add_variant(CLP_MENU_BUTTON, "rollback", controller_label_color));
 	}
-
 
 	/* {
 		tool_help_label_id[InteractionMode::CONFIG][1] =
@@ -685,34 +686,10 @@ bool pointcloud_cleaning_tool::init(cgv::render::context& ctx)
 	apply_spacing_label_variant = controller_labels[1].add_variant(CLP_MENU_BUTTON, "apply spacing", controller_label_color);
 
 	{
-		tool_help_label_id[InteractionMode::TRANSFORMING][1] =
-			text_labels.add_label(
-				"[Transforming]\n"
-				"scale and transform the pointcloud by using the controllers\n"
-				"Controller Left\n" 
-				"   Grip: scale\n"
-				"       Hold the grip button and move the controllers apart to scale up\n"
-				"       or closer together to scale down.\n"
-				"Controller Right\n"
-				"   Grip: move rotate\n"
-				"       Grab the pointcloud with the second controller.\n"
-				"   Trackpad up / down: move\n",
-				tool_label_color);
-		auto li = tool_help_label_id[InteractionMode::TRANSFORMING][1];
-		text_labels.place_label(li,
-			tool_help_label_offset, tool_label_ori, tool_help_label_coordinate_system, LA_LEFT, tool_label_scale);
-		text_labels.hide_label(li);
-	}
-	controller_label_variants[0][InteractionMode::TRANSFORMING][CLP_GRIP].push_back(
-		controller_labels[0].add_variant(CLP_GRIP, "scale", controller_label_color));
-	controller_label_variants[1][InteractionMode::TRANSFORMING][CLP_GRIP].push_back(
-		controller_labels[1].add_variant(CLP_GRIP, "move", controller_label_color));
-
-	{
 		tool_help_label_id[InteractionMode::TELEPORT][1] =
 			text_labels.add_label(
 				"[Teleport]\n"
-				"Grip: teleport\n"
+				"Trigger Controller Right: teleport\n"
 				"Controller 1 trigger: teleport with preview\n"
 				"Controller 1 menu: put pointcloud on table\n",
 				tool_label_color);
@@ -747,6 +724,20 @@ bool pointcloud_cleaning_tool::init(cgv::render::context& ctx)
 				tool_label_color);
 			
 		auto li = tool_help_label_id[InteractionMode::RGBD_INPUT][1];
+		text_labels.place_label(li,
+			tool_help_label_offset, tool_label_ori, tool_help_label_coordinate_system, LA_LEFT, tool_label_scale);
+		text_labels.hide_label(li);
+	}
+	{
+		tool_help_label_id[InteractionMode::HOLE_FILL][1] =
+			text_labels.add_label(
+				"[HOLE_FILL]\n"
+				"Trigger Controller Right: Add control points\n"
+				"Trackpad Controller Right:\n"
+				" up down   : move\n"
+				" left right: change shape\n",
+				tool_label_color);
+		auto li = tool_help_label_id[InteractionMode::HOLE_FILL][1];
 		text_labels.place_label(li,
 			tool_help_label_offset, tool_label_ori, tool_help_label_coordinate_system, LA_LEFT, tool_label_scale);
 		text_labels.hide_label(li);
@@ -876,9 +867,20 @@ void pointcloud_cleaning_tool::init_frame(cgv::render::context& ctx)
 void pointcloud_cleaning_tool::draw(cgv::render::context & ctx)
 {
 	if (fps_watch_file_ptr && log_fps && vr_view_ptr->get_rendered_eye() == 2) {
-		double frame_time = fps_watch.get_elapsed_time();
+		frame_time = fps_watch.get_elapsed_time();
 		fps_watch.restart();
 		*fps_watch_file_ptr << 1.0/frame_time << "\n";
+		
+	}
+	if (adapt_clod && vr_view_ptr->get_rendered_eye() == 2)
+	{
+		frame_time = fps_watch.get_elapsed_time();
+		fps_watch.restart();
+		// adapt clod rendering parameters
+		frame_rate = 1.0/ frame_time;
+		int f = int(frame_rate);
+		adapt_parameters(f);
+		update_views(&frame_rate);
 	}
 
 	//auto start_reduce = std::chrono::steady_clock::now();
@@ -1239,6 +1241,7 @@ void pointcloud_cleaning_tool::draw(cgv::render::context & ctx)
 					
 				if (rendered_eye == 0 && clod_controller.targeted_visible_points) {
 					clod_controller.control(source_point_cloud.ref_render_style(), cp_renderer.num_reduced_points(), 1.f / 90.f);
+					update_member(&source_point_cloud.ref_render_style().CLOD);
 				}
 
 				cp_renderer.disable(ctx);
@@ -1390,6 +1393,10 @@ void pointcloud_cleaning_tool::draw(cgv::render::context & ctx)
 	}*/
 
 	// draw vr stuff
+	if (is_selecting_mode)
+	{
+		//render_candidate_modes(ctx,);
+	}
 	render_a_handhold_arrow(ctx, rgb(0.4), 0.1f);
 
 	switch ((InteractionMode)interaction_mode) {
@@ -1491,39 +1498,6 @@ void pointcloud_cleaning_tool::draw(cgv::render::context & ctx)
 		}
 		break;
 	}
-	case InteractionMode::TRANSFORMING: {
-		if (vr_view_ptr && is_tp_floor) {
-			std::array<vec3, 4> P;
-			std::array<float, 4> R;
-			std::array<rgb, 4> C;
-			size_t array_index = 0;
-			constexpr float ray_length = 0.2;
-			const vr::vr_kit_state* state_ptr = vr_view_ptr->get_current_vr_state();
-			if (state_ptr) {
-				for (int ci = 0; ci < 2; ++ci) if (state_ptr->controller[ci].status == vr::VRS_TRACKED) {
-					vec3 ray_origin, ray_direction;
-					state_ptr->controller[ci].put_ray(&ray_origin(0), &ray_direction(0));
-					P[array_index] = ray_origin;
-					R[array_index] = 0.002f;
-					P[array_index + 1] = ray_origin + ray_length * ray_direction;
-					R[array_index + 1] = 0.003f;
-					rgb c(float(1 - ci), 0.5f, float(ci));
-					C[array_index] = c;
-					C[array_index + 1] = c;
-					array_index += 2;
-				}
-			}
-			if (P.size() > 0) {
-				auto& cr = cgv::render::ref_cone_renderer(ctx);
-				cr.set_render_style(cone_style);
-				cr.set_position_array(ctx, P.data(), array_index);
-				cr.set_color_array(ctx, C.data(), array_index);
-				cr.set_radius_array(ctx, R.data(), array_index);
-				cr.render(ctx, 0, P.size());
-			}
-		}
-		break;
-	}
 	case InteractionMode::LABELING: {
 		if (palette_position == PalettePosition::HEADON)
 		{
@@ -1618,6 +1592,29 @@ void pointcloud_cleaning_tool::draw(cgv::render::context & ctx)
 		rgbd_input_palette.render_palette(ctx, controller_poses[palette_hand]);
 		break;
 	}
+	case InteractionMode::HOLE_FILL: {
+			if (ctrl_pts.size() > 0) {
+				auto& sr = ref_sphere_renderer(ctx);
+				//std::vector<rgb8> colors(highlighted_points.size(), rgb8(255, 10, 255));
+				std::vector<float> radii(ctrl_pts.size(), teleport_ray_radius);
+				sr.set_position_array(ctx, ctrl_pts);
+				sr.set_color_array(ctx, ctrl_pts_clrs);
+				sr.set_radius_array(ctx, radii);
+				sr.render(ctx, 0, ctrl_pts.size());
+			}
+			if (show_surface_pts) {
+				if (surface_pts.get_nr_points() > 0) {
+					auto& sr = ref_sphere_renderer(ctx);
+					//std::vector<rgb8> colors(highlighted_points.size(), rgb8(255, 10, 255));
+					std::vector<float> radii(surface_pts.get_nr_points(), 0.005);
+					sr.set_position_array(ctx, &surface_pts.pnt(0), surface_pts.get_nr_points());
+					sr.set_color_array(ctx, &surface_pts.clr(0), surface_pts.get_nr_points());
+					sr.set_radius_array(ctx, radii);
+					sr.render(ctx, 0, surface_pts.get_nr_points());
+				}
+			}
+			break;
+		}
 	}
 
 	// draw trajectory of hmd
@@ -1684,6 +1681,15 @@ void pointcloud_cleaning_tool::finish_draw(cgv::render::context& ctx) {
 void pointcloud_cleaning_tool::on_device_change(void* kit_handle, bool attach)
 {
 	
+}
+
+void pointcloud_cleaning_tool::render_candidate_modes(cgv::render::context& ctx)
+{
+	cgv::render::sphere_renderer& sr_mode = ref_sphere_renderer(ctx);
+	sr_mode.set_render_style(sphere_style_lhand_modes);
+	//sr_mode.set_position_array(ctx, );
+	//sr_mode.set_color_array(ctx, );
+	sr_mode.render(ctx, 0, 5);
 }
 ///
 void pointcloud_cleaning_tool::render_a_handhold_arrow(cgv::render::context& ctx, rgb c, float r) {
@@ -1884,16 +1890,18 @@ void pointcloud_cleaning_tool::build_palette()
 		auto id = palette.add_object(top_bar_shapes[i], vec3((i - 1.5) * step_width, 0.1, -6 * step_width + toolbar_gap), rgba(0.501028, 0.51219, 0.540788, 1), vrui::POG_TOP_TOOLBAR);
 	}
 	//This is for adding left copy-paste menu bar
-	add_left_sidebar(palette, toolbar_gap, step_width);
-	{// clipboard
-		vec3 position = vec3(-3.0 * step_width + toolbar_gap, 0.1, -1 * step_width);
-		auto id = palette.add_object(vrui::PaletteObject::PO_SPHERE_FRAME, position, rgba(0.501028, 0.51219, 0.540788, 1), vrui::POG_LEFT_TOOLBAR);
-		palette.set_label_text(id, "clipboard");
-		
-		palette_clipboard_point_cloud_id = palette.add_pointcloud(nullptr, nullptr, 0, position, quat(1.f, 0.f, 0.f, 0.f));
-		//function for select label
-		//static point_label_brush selection_brush(~make_label(0, point_label_group::SELECTED_BIT), point_label_operation::AND, selection_shape::SS_NONE);
-		//palette.set_object_data(id, &selection_brush);
+	if (show_left_bar) {
+		add_left_sidebar(palette, toolbar_gap, step_width);
+		{// clipboard
+			vec3 position = vec3(-3.0 * step_width + toolbar_gap, 0.1, -1 * step_width);
+			auto id = palette.add_object(vrui::PaletteObject::PO_SPHERE_FRAME, position, rgba(0.501028, 0.51219, 0.540788, 1), vrui::POG_LEFT_TOOLBAR);
+			palette.set_label_text(id, "clipboard");
+
+			palette_clipboard_point_cloud_id = palette.add_pointcloud(nullptr, nullptr, 0, position, quat(1.f, 0.f, 0.f, 0.f));
+			//function for select label
+			//static point_label_brush selection_brush(~make_label(0, point_label_group::SELECTED_BIT), point_label_operation::AND, selection_shape::SS_NONE);
+			//palette.set_object_data(id, &selection_brush);
+		}
 	}
 }
 
@@ -2076,6 +2084,13 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 				vrpe.get_quaternion().rotate(off);
 				curr_offset_rhand = off;
 			}
+			// pick a mode
+			if (is_selecting_mode)
+			{
+				vec3 picking_position_lhand = cgv::math::pose_position(controller_poses[mode_selection_hand]);
+				float dist;
+				//int nearest_mode_idx = mode_options.trigger_mode(picking_position_lhand, dist);
+			}
 
 			if (is_scaling) {
 				static float movement_to_scale_factor = 1.00;
@@ -2116,6 +2131,11 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 					vec4 center_in_model_cs = inv(model_transform) * center;
 					vec4 new_center = new_model_transform * center_in_model_cs;
 					point_server_ptr->ref_point_cloud_position() += (vec3)(center - new_center);
+					// TODO: add adaptive spacing adjustment
+					if (last_measured_l0_spacing > 0.0 && last_measured_l0_spacing < std::numeric_limits<float>::infinity()) {
+						source_point_cloud.ref_render_style().scale = new_scale;
+						update_member(&source_point_cloud.ref_render_style().scale);
+					}
 				}
 
 			}
@@ -2165,7 +2185,6 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 						box_shaped_selection.point(0) = vec3(point_cloud_translation.x(), point_cloud_translation.y(), point_cloud_translation.z()) + box_shaped_selection.point(0);
 						box_shaped_selection.point(1) = vec3(point_cloud_translation.x(), point_cloud_translation.y(), point_cloud_translation.z()) + box_shaped_selection.point(1);
 						box_shaped_selection.orientation() = q_rotation * box_shaped_selection.orientation();
-
 						//box_shaped_selection.translation() = vec3(point_cloud_translation.x(), point_cloud_translation.y(), point_cloud_translation.z()) + box_shaped_selection.translation();
 						box_shaped_selection.update_selection();
 					}
@@ -2340,7 +2359,7 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 							last_measured_position = controller_poses[cid].col(3) + shape_offset(sphere_style_rhand.radius);
 							auto num_points = point_server_ptr->count_points_in_sphere(last_measured_position, sphere_style_rhand.radius);
 							int total_points = 0, max_lod_level = 0;
-							
+							// num_points refers to the numbers of each level within the sphere range
 							for (int i = 0; i < num_points.size(); ++i) {
 								if (num_points[i] > 0)
 									max_lod_level = i; //implicit max due to iteration order
@@ -2386,10 +2405,10 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 			{
 				const vr::vr_kit_state* state = vr_view_ptr->get_current_vr_state();
 				if (state) {
-					if ((interaction_mode == (int)InteractionMode::TRANSFORMING)||
-						(interaction_mode == (int)InteractionMode::LABELING) ||
+					if ((interaction_mode == (int)InteractionMode::LABELING) ||
 						(interaction_mode == (int)InteractionMode::PUSHING) ||
-						(interaction_mode == (int)InteractionMode::RGBD_INPUT)) {
+						(interaction_mode == (int)InteractionMode::RGBD_INPUT) ||
+						(interaction_mode == (int)InteractionMode::TELEPORT)) {
 						//first controller allows scaling
 						is_scaling = state->controller[0].button_flags & vr::VRF_GRIP;
 						//second does movement and rotating
@@ -2402,9 +2421,9 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 				}
 			}
 
-			static const float angle = std::asin(1.f)/3.f;
+			static const float angle = std::asin(1.f) / 3.f;
 			cgv::gui::vr_key_event& vrke = static_cast<cgv::gui::vr_key_event&>(e);
-			
+
 			if (vrke.get_action() == cgv::gui::KA_RELEASE) {
 				return true;
 			}
@@ -2434,19 +2453,21 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 								// copy points
 								auto& collected = collect_points(*this->get_context(), (int)point_label_group::SELECTED_BIT);
 								auto& labels_ref = chunked_points.get_attribute(label_attribute_id);
-								
+
 								move_points_to_clipboard(collected.first, collected.second, labels_ref.data<GLint>());
 								if (clear_selection_labels_after_copy) {
 									//clear labels by using the logical AND-operation on all points labels
-									point_server_ptr->label_all_points(~(GLint)point_label_group::SELECTED_BIT , (int32_t)point_label_group::SELECTED_BIT, 0, point_label_operation::AND);
+									point_server_ptr->label_all_points(~(GLint)point_label_group::SELECTED_BIT, (int32_t)point_label_group::SELECTED_BIT, 0, point_label_operation::AND);
 								}
 							}
 						}
 					}
 					else if ((InteractionMode)interaction_mode == InteractionMode::CONFIG) {
 						//set scale corrected root level point spacing
-						if (last_measured_l0_spacing > 0.0 && last_measured_l0_spacing < std::numeric_limits<float>::infinity())
+						if (last_measured_l0_spacing > 0.0 && last_measured_l0_spacing < std::numeric_limits<float>::infinity()) {
 							source_point_cloud.ref_render_style().spacing = last_measured_l0_spacing / source_point_cloud.ref_render_style().scale;
+							update_member(&source_point_cloud.ref_render_style().spacing);
+						}
 					}
 					else if ((InteractionMode)interaction_mode == InteractionMode::TELEPORT) {
 						//stores the pointclouds transformation state, restores on teleport
@@ -2480,6 +2501,16 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 								text_labels.place_label(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1],
 									right_tool_label_offset, tool_label_ori, CS_RIGHT_CONTROLLER, LA_LEFT, tool_label_scale);
 							}
+						}
+					}
+					else if ((InteractionMode)interaction_mode == InteractionMode::HOLE_FILL){
+						if (surface_pts.get_nr_points() > 0)
+						{
+							// paste pointcloud and disengage paste mode
+							auto model_mat = cgv::mat4(1.0);
+							point_server_ptr->fuse_point_cloud(surface_pts, model_mat, true);
+							//point_editing_tool = pallete_tool::PT_BRUSH;
+							//update_controller_labels();
 						}
 					}
 				}
@@ -2525,6 +2556,20 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 								}
 							}
 						}
+						else if (point_editing_tool == pallete_tool::PT_PASTE) {
+							if (vrke.get_controller_index() == 1 && chunked_points.num_chunks() > 0)
+							{
+								auto* record_ptr = clipboard_ptr->get_by_id(palette_clipboard_record_id);
+								if (record_ptr->points)
+								{
+									// paste pointcloud and disengage paste mode
+									auto model_mat = record_ptr->model_matrix();
+									point_server_ptr->fuse_point_cloud(*record_ptr->points, model_mat, true);
+									point_editing_tool = pallete_tool::PT_BRUSH;
+									update_controller_labels();
+								}
+							}
+						}
 						//palette_element_shapes[picked_sphere_index] = point_selection_shape != selection_shape::SS_NONE ? point_selection_shape : selection_shape::SS_SPHERE;
 						//update_palette();
 					}
@@ -2560,6 +2605,11 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 						//text_labels.place_label(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1],
 						//	right_tool_label_offset, tool_label_ori, CS_RIGHT_CONTROLLER, LA_LEFT, tool_label_scale);
 						
+					}
+					else if ((InteractionMode)interaction_mode == InteractionMode::HOLE_FILL) {
+						surface_pts = generateBezierSurface(ctrl_pts.at(0), ctrl_pts.at(1), ctrl_pts.at(2), ctrl_pts.at(3), 20);
+						point_server_ptr->compute_lod_adding_points(surface_pts, preparation_settings);
+						show_surface_pts = !show_surface_pts;
 					}
 				}
 				else if (vrke.get_controller_index() == 0) {
@@ -2623,17 +2673,6 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 							}*/
 							}
 						}
-						else if (point_editing_tool == pallete_tool::PT_PASTE) {
-							if (vrke.get_controller_index() == 1 && chunked_points.num_chunks() > 0) {
-								auto* record_ptr = clipboard_ptr->get_by_id(palette_clipboard_record_id);
-								if (record_ptr->points) {
-									//paste pointcloud and disengage paste mode, and merge point cloud
-									point_server_ptr->fuse_point_cloud(*record_ptr->points, record_ptr->model_matrix(), true);
-									point_editing_tool = pallete_tool::PT_BRUSH;
-									update_controller_labels();
-								}
-							}
-						}
 						else if (point_editing_tool == pallete_tool::PT_SELECTION) {
 							if (box_shaped_selection.phase() == box_selection_phase::SECOND_POINT_CONFIRMED)
 							{
@@ -2674,7 +2713,7 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 	if (e.get_kind() == cgv::gui::EID_STICK) {
 		cgv::gui::vr_stick_event& vrse = static_cast<cgv::gui::vr_stick_event&>(e);
 		// left-hand controller: left-right touching event: adjusting size of selection primitive
-		// config mode: adjust the CLOD factor
+		// right - hand controller : config mode : left - right touching : adjust point size
 		if (vrse.get_controller_index() == 0)
 		{
 			if (vrse.get_action() == cgv::gui::SA_MOVE) {
@@ -2714,17 +2753,20 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 						{
 							source_point_cloud.ref_render_style().pointSize += 0.01;
 							update_member(&source_point_cloud.ref_render_style().pointSize);
+							// must be updated
+							update_clod_parameters_label();
 						}
 						else if (vrse.get_x() < 0 && vrse.get_y() < 0.5 && vrse.get_y() > -0.5)
 						{
 							source_point_cloud.ref_render_style().pointSize -= 0.01;
 							update_member(&source_point_cloud.ref_render_style().pointSize);
+							update_clod_parameters_label();
 						}
 					}
 				}
 			}
 		}
-		// right-hand controller: config mode: left-right touching: adjust point size
+		// config mode: adjust the CLOD factor
 		if (vrse.get_controller_index() == 1)
 		{
 			if (vrse.get_action() == cgv::gui::SA_MOVE) {
@@ -2732,6 +2774,7 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 				{
 					if (config_mode_tool == (int)ConfigModeTools::CMT_PointSpacingProbe) 
 					{
+						// adjust primitive size in spacing probe mode
 						static constexpr float threshold = 0.40f;
 						//zero if sub threashold otherwise sign(vrse.get_y())*1.f
 						float factor = abs(vrse.get_x()) > threshold ? (cgv::math::sign(vrse.get_x()) >= 0 ? 1.f : -1.f) : 0;
@@ -2766,18 +2809,25 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 		auto& te = static_cast<cgv::gui::vr_throttle_event&>(e);
 		int ci = te.get_controller_index();
 		float v = te.get_value();
-		bool d = (v == 1); // event 
-		if (ci == 1) { // right hand 
+		//bool d = (v == 1); // event 
+		/*if (ci == 1) { // right hand 
 			if (v > 0) {
 
 			}
-		}
+		}*/
 		
 		if (last_throttle_state[ci] < throttle_threshold && v >= throttle_threshold) {
 			on_throttle_threshold(ci, true);
 		}
 		else if (last_throttle_state[ci] >= throttle_threshold && v < throttle_threshold) {
 			on_throttle_threshold(ci, false);
+		}
+		if ((InteractionMode)interaction_mode == InteractionMode::HOLE_FILL) {
+			if (ci == 1 && v == 1.0) {
+				if(ctrl_pts.size() < 4)
+				ctrl_pts.push_back(cgv::math::pose_position(controller_poses[ci]) + shape_offset(0.f));
+				ctrl_pts_clrs.push_back(rgb(1.0, 0.0, 0.0));
+			}
 		}
 		last_throttle_state[te.get_controller_index()] = v;
 		return true;
@@ -2798,7 +2848,7 @@ void pointcloud_cleaning_tool::on_throttle_threshold(const int ci, const bool lo
 				break;
 			case RGBDInputModeTools::Fuse:
 			{
-				static constexpr int default_label = 0; //assigned to new points, default as 0
+				static constexpr int default_label = 0; //assigned to new points
 
 				auto* pc_ptr = point_cloud_registration.get_point_cloud();
 				if (pc_ptr) {
@@ -2962,8 +3012,9 @@ void pointcloud_cleaning_tool::on_throttle_threshold(const int ci, const bool lo
 	}
 	else if ((InteractionMode)interaction_mode == InteractionMode::CONFIG) {
 		if (low_high) {
+			// print pose information of right controller
 			const float* position_ptr = vr_view_ptr->get_current_vr_state()->controller[ci].pose + 9;
-			std::cout << position_ptr[0] << "," << position_ptr[1] << "," << position_ptr[2] << "\n";
+			//std::cout << position_ptr[0] << "," << position_ptr[1] << "," << position_ptr[2] << "\n";
 		}
 	}
 
@@ -3426,13 +3477,13 @@ void pointcloud_cleaning_tool::update_controller_labels()
 			switch (interaction_mode) {
 			case InteractionMode::LABELING: {
 				if (p == CLP_GRIP && ci == 1) {
-					if (point_editing_tool == pallete_tool::PT_PASTE) {
+					/*if (point_editing_tool == pallete_tool::PT_PASTE) {
 						controller_labels[ci].set_active((controller_label_placement)p, controller_label_variants[ci][interaction_mode][p][paste_mode_controller_label_variant_index]);
 					}
 					else {
 						controller_labels[ci].set_active((controller_label_placement)p, controller_label_variants[ci][interaction_mode][p][point_selection_shape]);
 					}
-					break;
+					break;*/
 				}
 				else if (p == CLP_TRACKPAD_RIGHT && ci == 1) {
 					if (point_editing_tool == PT_SELECTION) {
@@ -3445,10 +3496,24 @@ void pointcloud_cleaning_tool::update_controller_labels()
 						}
 						break;
 					}
+					if (point_editing_tool == pallete_tool::PT_PASTE)
+					{
+						controller_labels[ci].set_active((controller_label_placement)p, paste_is_shown);
+					}
+					else
+					{
+						default_settings(ci, p);
+					}
 				}
 				else if (p == CLP_TRACKPAD_LEFT && ci == 1) {
 					if (point_editing_tool == PT_SELECTION) {
 						controller_labels[ci].set_active((controller_label_placement)p, clear_box_label_variant);
+						break;
+					}
+				}
+				else if (p == CLP_MENU_BUTTON && ci == 1) {
+					if (point_editing_tool == PT_SELECTION) {
+						controller_labels[ci].set_active((controller_label_placement)p, box_is_active_labeling_variant);
 						break;
 					}
 				}
@@ -3482,7 +3547,7 @@ void pointcloud_cleaning_tool::update_palette()
 	}
 }
 
-cgv::render::render_types::vec3 pointcloud_cleaning_tool::shape_offset(float radius) const
+vec3 pointcloud_cleaning_tool::shape_offset(float radius) const
 {
 	return curr_offset_rhand + cgv::math::normalize(curr_offset_rhand) * radius;
 }
@@ -3718,28 +3783,96 @@ void pointcloud_cleaning_tool::on_load_comparison_point_cloud_2_cb()
 	std::cout << "loaded pointcloud " << fn << " with " << pc_2.get_nr_points() << " points!\n";
 }
 
+void pointcloud_cleaning_tool::on_load_annotated_point_cloud_cb()
+{
+	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
+	if (fn.empty())
+		return;
+
+	//read new pointcloud	
+	pc_annotated.read(fn);
+	std::cout << "source_pc.read done." << std::endl;
+	if (file_contains_label_groups && pc_annotated.has_labels()) {
+		size_t num_points = pc_annotated.get_nr_points();
+		for (size_t i = 0; i < num_points; ++i) {
+			pc_annotated.label(i) = (pc_annotated.label(i) >> 16);
+		}
+	}
+
+	std::cout << "loaded pointcloud " << fn << " with " << pc_annotated.get_nr_points() << " points!\n";
+}
+
+void pointcloud_cleaning_tool::on_compare_annotated_data()
+{
+	for (int i = 0; i < source_point_cloud.get_nr_points(); ++i)
+	{
+		for (int j = 0; j < pc_annotated.get_nr_points(); ++j)
+		{
+			if (source_point_cloud.pnt(i) == pc_annotated.pnt(j))
+			{
+
+			}
+		}
+	}
+}
+
 void pointcloud_cleaning_tool::on_load_comparison_point_cloud_cb()
 {
 	size_t num_points = pc_2.get_nr_points();
-	if (pc_1.get_nr_points() == pc_2.get_nr_points() && num_points > 0)
-	{   
-		int m = 0;
-		int n = 0;
-		float iou = 0.f;
-		std::cout << "start\n" << std::endl;
-		for (int i = 0; i < num_points; ++i)
-		{
-			if (pc_1.label(i) == pc_2.label(i))
-				m++;
-			if (num_points > (num_points / 10 * n))
-			{
-				std::cout << "finish " << n <<"\n";
-				n++;
-			}
-		}
-		iou = static_cast<float>(m) / num_points;
-		std::cout << "they have the same number of points\n" << iou << "m: "<< m;
+	if (pc_1.get_nr_points() != num_points || num_points == 0) {
+		std::cout << "Error: Point clouds do not match in size or are empty.\n";
+		return;
 	}
+
+	// Maps to store label counts
+	std::unordered_map<int, int> intersection, union_pc1, union_pc2;
+
+	for (size_t i = 0; i < num_points; ++i) {
+		int label1 = pc_1.label(i);
+		int label2 = pc_2.label(i);
+
+		if (label1 == label2) {
+			intersection[label1]++;
+		}
+
+		union_pc1[label1]++;
+		union_pc2[label2]++;
+	}
+
+	// Calculate IoU for each label and overall IoU
+	std::unordered_map<int, float> iou_per_label;
+	int total_intersection = 0, total_union = 0;
+
+	// Calculate IoU for each label
+	for (const auto& p : union_pc1) {
+		int label = p.first;
+		int union_count = p.second + union_pc2[label] - intersection[label];
+		int intersect_count = intersection[label];
+
+		iou_per_label[label] = static_cast<float>(intersect_count) / union_count;
+
+		// Accumulate totals for overall IoU
+		total_intersection += intersect_count;
+		total_union += union_count;
+	}
+
+	// Include labels that only appear in pc_2
+	for (const auto& p : union_pc2) {
+		if (union_pc1.find(p.first) == union_pc1.end()) {
+			total_union += p.second;
+		}
+	}
+
+	// Calculate overall IoU
+	float overall_iou = static_cast<float>(total_intersection) / total_union;
+
+	// Output IoU for each label
+	for (const auto& p : iou_per_label) {
+		std::cout << "Label " << p.first << " IoU: " << p.second * 100.0f << "%\n";
+	}
+
+	// Output overall IoU
+	std::cout << "Overall IoU: " << overall_iou * 100.0f << "%\n";
 }
 
 void pointcloud_cleaning_tool::on_clear_comparison_point_cloud_cb()
@@ -3754,38 +3887,87 @@ void pointcloud_cleaning_tool::on_clear_comparison_point_cloud_cb()
 	post_redraw();
 }
 
-void pointcloud_cleaning_tool::on_load_extra_point_cloud_cb()
+void pointcloud_cleaning_tool::on_load_ori_pc_cb()
 {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
 		return;
 
 	//read new pointcloud	
-	pc_extra.read(fn);
-	std::cout << "pc_extra.read done." << std::endl;
-	if (file_contains_label_groups && pc_extra.has_labels()) {
-		size_t num_points = pc_extra.get_nr_points();
+	pc_gt.read(fn);
+	std::cout << "source_pc.read done." << std::endl;
+	if (file_contains_label_groups && pc_gt.has_labels()) {
+		size_t num_points = pc_gt.get_nr_points();
 		for (size_t i = 0; i < num_points; ++i) {
-			pc_extra.label(i) = (pc_extra.label(i) >> 16);
+			pc_gt.label(i) = (pc_gt.label(i) >> 16);
 		}
 	}
 
-	std::cout << "loaded extra pointcloud " << fn << " with " << pc_extra.get_nr_points() << " points!\n";
+	std::cout << "loaded pointcloud " << fn << " with " << pc_gt.get_nr_points() << " points!\n";
 }
 
-void pointcloud_cleaning_tool::on_merge_pc_cb()
+void pointcloud_cleaning_tool::on_load_anno_pcs_cb() 
 {
-	if (pc_extra.get_nr_points()>0)
-		source_point_cloud.append(pc_extra);
-
-	prepare_point_cloud();
-	std::cout << "prepare_merge_point_cloud done." << std::endl;
-
-	if (pointcloud_fit_table) {
-		on_point_cloud_fit_table();
-		std::cout << "automatic_scale_to_fit_table done." << std::endl;
+	std::string directory_str = cgv::gui::directory_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
+	std::vector<string> filelists;
+	getfilelist(directory_str, filelists);
+	point_cloud temp;
+	for (int i = 0; i < filelists.size(); ++i)
+	{
+		temp.clear();
+		std::cout << filelists.at(i) << std::endl;
+		std::string filename = directory_str + "/" + filelists.at(i) + ".txt";
+		temp.read(filename);
+		pc_list.push_back(temp);
+		std::cout << "number: " << pc_list.at(i).get_nr_points() << std::endl;
 	}
-	post_redraw();
+	/*std::unordered_map<std::string, point_cloud> annotatedClouds;
+
+	for (const auto& filename : filenames) {
+		annotatedClouds[filename] = loadPointCloud(filename);
+	}
+
+	return annotatedClouds;*/
+}
+
+void pointcloud_cleaning_tool::getdirectorylist(const std::string& dirpath, std::vector<std::string>& directorylist)
+{
+	std::string path = dirpath + "/*.*";
+	_finddata_t file;
+	long handle;
+	if ((handle = _findfirst(path.c_str(), &file)) == -1) {
+		std::cout << "Not Found File!" << std::endl;
+	}
+	else {
+		_findnext(handle, &file); //.
+
+		while (_findnext(handle, &file) == 0) {
+			std::string directoryname = file.name;
+			directorylist.push_back(directoryname);
+		}
+	}
+	_findclose(handle);
+}
+
+void pointcloud_cleaning_tool::getfilelist(const std::string& dirpath, std::vector<std::string>& filelist)
+{
+	std::string path = dirpath + "/*.*";
+	_finddata_t file;
+	intptr_t handle;
+	if ((handle = _findfirst(path.c_str(), &file)) == -1) {
+		std::cout << "Not Found File!" << std::endl;
+	}
+	else {
+		_findnext(handle, &file); //.
+
+		while (_findnext(handle, &file) == 0) {
+			std::string filename = file.name;
+			if (filename.size() > 4 && filename.substr(filename.length() - 4, 4) == ".txt") {
+				filelist.push_back(filename.substr(0, filename.length() - 4));
+			}
+		}
+	}
+	_findclose(handle);
 }
 
 void pointcloud_cleaning_tool::on_load_CAD_cb() {
@@ -3796,6 +3978,12 @@ void pointcloud_cleaning_tool::on_load_CAD_cb() {
 	M.read(fn);
 
 	std::cout << "loaded CAD " << fn << " with " << pc_2.get_nr_points() << " points!\n";
+}
+
+void pointcloud_cleaning_tool::on_load_scannet_gt_cb() {
+	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
+	if (fn.empty())
+		return;
 }
 
 void pointcloud_cleaning_tool::draw_surface(cgv::render::context& ctx, bool opaque_part)
@@ -3852,6 +4040,73 @@ void pointcloud_cleaning_tool::draw_mesh() {
 	show_surface = true;
 	show_vertices = true;
 	show_wireframe = true;
+}
+
+void pointcloud_cleaning_tool::adapt_parameters(const int current_framerate) {
+	float temp_ps = source_point_cloud.ref_render_style().pointSize;
+	float temp_clod = source_point_cloud.ref_render_style().CLOD;
+	if (current_framerate < desired_fps) {
+		// If the current framerate is less than the desired framerate,
+		// decrease the sizeMultiplier to render points smaller, which should be less intensive
+		temp_ps *= (1.0f - adaptation_rate);
+		// Optionally, adjust CLOD to decrease level of detail dynamically
+		temp_clod += adaptation_rate;
+	}
+	else if (current_framerate > stable_fps) {
+		// If performance allows, we can increase quality by decreasing targetSpacing
+		// and increasing sizeMultiplier, but make sure not to exceed desired framerate
+		temp_ps *= (1.0f + adaptation_rate);
+		temp_clod -= adaptation_rate;
+	}
+	// Clamp sizeMultiplier and targetSpacing to prevent over-scaling
+	source_point_cloud.ref_render_style().pointSize = cgv::math::clamp(temp_ps, 0.01f, 1.0f);
+	source_point_cloud.ref_render_style().CLOD = cgv::math::clamp(temp_clod, 1.0f, 5.0f);
+	update_member(&source_point_cloud.ref_render_style().pointSize);
+	update_member(&source_point_cloud.ref_render_style().CLOD);
+}
+
+vec3 pointcloud_cleaning_tool::bezier_point(double t, const vec3 p0, const vec3 p1, const vec3 p2, const vec3 p3)
+{
+	double u = 1 - t;
+	double tt = t * t;
+	double uu = u * u;
+	double uuu = uu * u;
+	double ttt = tt * t;
+
+	vec3 point = p0 * uuu;    // First term
+	point = point + p1 * (3 * uu * t); // Second term
+	point = point + p2 * (3 * u * tt); // Third term
+	point = point + p3 * ttt;    // Fourth term
+	return point;
+}
+
+// Function to interpolate between two points
+vec3 pointcloud_cleaning_tool::interpolate(const vec3& p0, const vec3& p1, float t) {
+	return {
+		(1 - t) * p0.x() + t * p1.x(),
+		(1 - t) * p0.y() + t * p1.y(),
+		(1 - t) * p0.z() + t * p1.z()
+	};
+}
+
+// Generate Bezier surface points
+point_cloud pointcloud_cleaning_tool::generateBezierSurface(const vec3& p0, const vec3& p1, const vec3& p2, const vec3& p3, int numPoints) {
+	//std::vector<vec3> surfacePoints;
+	point_cloud surfacePTS;
+	for (int i = 0; i < numPoints; ++i) {
+		float u = i / (float)(numPoints - 1);
+		for (int j = 0; j < numPoints; ++j) {
+			float v = j / (float)(numPoints - 1);
+
+			// Interpolate the points
+			vec3 p01 = interpolate(p0, p1, u);
+			vec3 p32 = interpolate(p3, p2, u);
+			point_cloud_types::Pnt p = interpolate(p01, p32, v);
+			rgb c = rgb(1.0, 0.0, 0.0);
+			surfacePTS.add_point(p, c);
+		}
+	}
+	return surfacePTS;
 }
 
 void pointcloud_cleaning_tool::load_labels_from(const std::string& fn) {
@@ -4133,7 +4388,7 @@ std::pair<std::vector<pointcloud_cleaning_tool::LODPoint>, std::vector<GLuint>> 
 	for (auto i_v_pair : chunked_points) {
 		auto& ix = i_v_pair.first;
 		auto& ch = i_v_pair.second;
-		auto buf = result_buffers[ix];
+		//auto buf = result_buffers[ix];
 		GLuint* results = static_cast<GLuint*>(glMapNamedBufferRange(result_buffers[ix], 0, sizeof(GLuint) * (ch->size() + 1), GL_MAP_READ_BIT));
 		GLuint results_size = results[0]; ++results;
 
@@ -4174,7 +4429,7 @@ void pointcloud_cleaning_tool::move_points_to_clipboard(std::vector<LODPoint>& p
 	std::unique_ptr<point_cloud_record> tmp_pcr = std::make_unique<point_cloud_record>();
 	auto& serv = ref_point_cloud_server(*this->get_context());
 	tmp_pcr->scale = serv.ref_point_cloud_scale();
-	tmp_pcr->rotation = quat(cgv::math::rotate3(serv.ref_point_cloud_rotation()));
+	tmp_pcr->rotation = quat(cgv::math::rotate3_rpy(serv.ref_point_cloud_rotation()));
 	pct::point_cloud_record* pcr_ptr = tmp_pcr.get();
 	
 	// create point_cloud object later stored in the point_cloud_record
@@ -4400,7 +4655,7 @@ void pointcloud_cleaning_tool::update_interaction_mode(const InteractionMode im)
 	else {
 		spacing_tool_enabled = false;
 	}
-	// get point cloud from RGB-D camera
+	
 	if (im == InteractionMode::RGBD_INPUT) {
 		fetch_from_rgbd(true);
 	}
@@ -4716,11 +4971,15 @@ void pointcloud_cleaning_tool::create_gui()
 	connect_copy(add_button("load_1")->click, rebind(this, &pointcloud_cleaning_tool::on_load_comparison_point_cloud_1_cb));
 	connect_copy(add_button("load_2")->click, rebind(this, &pointcloud_cleaning_tool::on_load_comparison_point_cloud_2_cb));
 	connect_copy(add_button("compare")->click, rebind(this, &pointcloud_cleaning_tool::on_load_comparison_point_cloud_cb));
-	connect_copy(add_button("load extra")->click, rebind(this, &pointcloud_cleaning_tool::on_load_extra_point_cloud_cb));
-	connect_copy(add_button("merge")->click, rebind(this, &pointcloud_cleaning_tool::on_merge_pc_cb));
+
+	connect_copy(add_button("load_ori")->click, rebind(this, &pointcloud_cleaning_tool::on_load_ori_pc_cb));
+	connect_copy(add_button("load_pcs")->click, rebind(this, &pointcloud_cleaning_tool::on_load_anno_pcs_cb));
 
 	connect_copy(add_button("loadCAD")->click, rebind(this, &pointcloud_cleaning_tool::on_load_CAD_cb));
 	connect_copy(add_button("showmesh")->click, rebind(this, &pointcloud_cleaning_tool::draw_mesh));
+	add_member_control(this, "adapt CLOD", adapt_clod, "check",
+		"tooltip='adapt the clod parameters to current point cloud and GPU'");
+	add_view("fps", frame_rate, "view");
 	
 	std::string toggle_show_labeled_points_only_txt = (visible_point_groups & 1) ? "show labeled point only" : "show all points";
 	connect_copy(add_button(toggle_show_labeled_points_only_txt)->click, rebind(this, &pointcloud_cleaning_tool::on_toggle_show_labeled_points_only));
@@ -4731,6 +4990,7 @@ void pointcloud_cleaning_tool::create_gui()
 	add_member_control(this, "show floor", world.show_floor, "toggle");
 	add_member_control(this, "show help", always_show_help, "toggle");
 	add_member_control(this, "show button labels", show_controller_labels, "toggle");
+	add_member_control(this, "show left bar", show_left_bar, "toggle");
 	// show lod color and disable main view
 	add_decorator("Other", "heading", "level=2");
 	add_member_control(this, "disable_main_view", disable_main_view, "toggle");
@@ -4784,6 +5044,7 @@ void pointcloud_cleaning_tool::create_gui()
 			add_member_control(this, "enable", log_labeling_gpu_time, "toggle");
 		add_decorator("FPS", "heading", "level=3");
 		connect_copy(add_button("set FPS log file")->click, rebind(this, &pointcloud_cleaning_tool::on_set_fps_watch_file));
+		add_view(" FPS", fps_watch, "view");
 		add_view(" FPS log file", fps_watch_file_name, "view");
 		add_member_control(this, "enable", log_fps, "toggle");
 		align("\b");
@@ -4808,7 +5069,7 @@ void pointcloud_cleaning_tool::create_gui()
 			add_member_control(this, "use vr kit as pivot", use_vr_kit_as_pivot, "toggle","tooltip='change the relevant reference point use by the reduction step'");
 			add_member_control(this, "point limit", max_points, "value_slider", "min=10000;max=100000000;log=true;ticks=true");
 
-			if (begin_tree_node("CLOD render style", source_point_cloud.ref_render_style(), false)) {
+			if (begin_tree_node("CLOD render style", source_point_cloud.ref_render_style(), true)) {
 				align("\a");
 				add_gui("clod style", source_point_cloud.ref_render_style());
 				align("\b");

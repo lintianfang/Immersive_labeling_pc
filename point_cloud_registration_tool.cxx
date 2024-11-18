@@ -131,7 +131,6 @@ namespace pct {
 		record->rotation = quat(1.f, 0.f, 0.f, 0.f);
 		record->translation = vec3(0.f);
 		record->points = std::make_unique<point_cloud>();
-
 		std::stringstream ss_name;
 		ss_name << "rgbd input capture " << ++num_captured_pointclouds;
 		record->name = ss_name.str();
@@ -178,7 +177,7 @@ namespace pct {
 	{
 		return selected_index == live_update_slot;
 	}
-	// obtain the new point cloud from rgbd camera
+
 	void point_cloud_registration_tool::on_point_cloud_update()
 	{
 		if (point_cloud_ids[live_update_slot] == -1) {
@@ -240,7 +239,6 @@ namespace pct {
 
 	void point_cloud_registration_tool::copy_point_style(cgv::render::clod_point_render_style& style)
 	{
-		//copy clod_renderer to point_renderer
 		point_style_p.point_size = style.pointSize;
 		point_style_p.blend_points = false;
 	}
@@ -263,8 +261,6 @@ namespace pct {
 		vec3 move = pose.col(3) - centroid;
 
 		ref_translation() += move;
-		//add default scale for showing the point cloud after picking
-		ref_scale() = 1.0;
 		return true;
 	}
 
@@ -343,7 +339,6 @@ namespace pct {
 		icp_target_index = selected_index;
 		icp_target_transform = target_transform;
 		icp_initial_transform.identity();
-		//here are only ICP and Sparse ICP
 		switch (reg_mode_p) {
 		case registration_method::RM_ICP:
 			icp_future = std::async(std::launch::async, reg_icp, std::move(transformed_pc), std::move(transformed_target), rot, trans);

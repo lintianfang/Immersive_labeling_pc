@@ -3,7 +3,6 @@
 #include <functional>
 #include <cgv/render/drawable.h>
 #include <cgv_gl/sphere_renderer.h>
-#include <cgv/render/render_types.h>
 #include <cgv_gl/box_renderer.h>
 #include <cgv_gl/box_wire_renderer.h>
 #include <memory>
@@ -51,15 +50,15 @@ namespace vrui {
 		palette* get_palette_ptr();
 	};
 
-	class palette : public cgv::render::render_types {
+	class palette {
 	public:
 		constexpr static float icosahedron_scale = 0.020f;
 	private:
 		std::vector<PaletteObject> palette_object_shapes; //geometric shapes of palette objects
 		std::vector<PaletteObjectGroup> palette_object_groups;
 		std::vector<bool> palette_object_visibility;
-		std::vector<vec3> palette_object_positions;
-		std::vector<rgba> palette_object_colors;
+		std::vector<cgv::vec3> palette_object_positions;
+		std::vector<cgv::rgba> palette_object_colors;
 		std::vector<void*> palette_object_data;
 		std::vector<int> positions_in_group;
 		std::vector<int> palette_text_label_ids; //map containing text label ids for text attached to palette objects, -1 means no label is assigned
@@ -96,15 +95,15 @@ namespace vrui {
 		GLuint sphere_frame_offset_buffer;
 		GLuint sphere_frame_color_buffer;
 
-		std::vector<vec3> sphere_points; 		/// stores points of a geodesic sphere
+		std::vector<cgv::vec3> sphere_points; 		/// stores points of a geodesic sphere
 		std::vector<unsigned> sphere_triangles; /// stores indices into sphere points defining triangle of a geodesic sphere
 
-		std::vector<vec3> point_cloud_positions;
-		std::vector<quat> point_cloud_rotations;
+		std::vector<cgv::vec3> point_cloud_positions;
+		std::vector<cgv::quat> point_cloud_rotations;
 		std::vector<float> point_cloud_scales;
 
-		std::vector<std::vector<vec3>> point_clouds_point_positions;
-		std::vector<std::vector<rgb8>> point_clouds_point_colors;
+		std::vector<std::vector<cgv::vec3>> point_clouds_point_positions;
+		std::vector<std::vector<cgv::rgb8>> point_clouds_point_colors;
 		std::vector<cgv::render::attribute_array_manager> point_cloud_array_managers;
 
 		cgv::render::context* ctx_ptr;
@@ -125,7 +124,7 @@ namespace vrui {
 		*	@param[in] pog : grouping of the object
 		*	@returns handle for the object
 		*/
-		int add_object(const PaletteObject shape, const vec3& position, const rgba& color, const PaletteObjectGroup pog=POG_NONE);
+		int add_object(const PaletteObject shape, const cgv::vec3& position, const cgv::rgba& color, const PaletteObjectGroup pog=POG_NONE);
 		/** add a pointcloud that is rendered inside the palette
 		*	@param[in] point_positions : pointer to first element in an array/vector of point positions
 		*	@param[in] point_colors : pointer to first element in an array/vector of point colors
@@ -133,11 +132,11 @@ namespace vrui {
 		*	@param[in] rotation : rotation of the pointcloud relative to the palettes coordinate system
 		*	@returns handle for the object
 		*/
-		int add_pointcloud(const vec3* point_positions, const rgb8* point_colors, const size_t size, const vec3& position, const quat& rotation);
+		int add_pointcloud(const cgv::vec3* point_positions, const cgv::rgb8* point_colors, const size_t size, const cgv::vec3& position, const cgv::quat& rotation);
 
-		void replace_pointcloud(const int pc_id, const vec3* point_positions, const rgb8* point_colors, const size_t size);
+		void replace_pointcloud(const int pc_id, const cgv::vec3* point_positions, const cgv::rgb8* point_colors, const size_t size);
 		
-		void replace_pointcloud(const int pc_id, const vec3* point_positions, const rgb8* point_colors, const size_t size, const vec3& position, const quat& rotation);
+		void replace_pointcloud(const int pc_id, const cgv::vec3* point_positions, const cgv::rgb8* point_colors, const size_t size, const cgv::vec3& position, const cgv::quat& rotation);
 
 		/** associate a function with an object, this functor can be called by trigger_function(id)
 			@param id : object id
@@ -154,9 +153,9 @@ namespace vrui {
 		//@param[in] palette_pose
 		//@param[out] dist: distance to picked object's center
 		//@returns id if successful and -1 if no object was picked
-		int pick_object(const vec3& pnt, const cgv::render::render_types::mat34& palette_pose, float& dist);
+		int pick_object(const cgv::vec3& pnt, const cgv::mat34& palette_pose, float& dist);
 
-		int trigger_object(const vec3& pnt, const cgv::render::render_types::mat34& palette_pose, float& dist, bool only_once_between_objects = true);
+		int trigger_object(const cgv::vec3& pnt, const cgv::mat34& palette_pose, float& dist, bool only_once_between_objects = true);
 
 		/** set / changes text of the textlable linked to the object refered by \p obj_ix
 		*	@param obj_ix : object id
@@ -169,9 +168,9 @@ namespace vrui {
 		// set a pointer that is passed to the objects functor if invoked by trigger_function(..)
 		void set_object_data(const int id, void* data_ptr);
 		// renders the palette, call this inside your draw loop
-		void render_palette(cgv::render::context& ctx, const mat34& pose);
+		void render_palette(cgv::render::context& ctx, const cgv::mat34& pose);
 
-		void set_colors(const std::vector<rgba>& palette_colors);
+		void set_colors(const std::vector<cgv::rgba>& palette_colors);
 		/// change visibility of the objects added over add_object(..) with pog=PaletteObjectGroup::POG_TOP_TOOLBAR 
 		void set_top_toolbar_visibility(const bool visibility);
 		/// indicate that the palette was changed so class internal render code can react to it
@@ -189,7 +188,7 @@ namespace vrui {
 		/// check if a pointcloud id/handle is valid
 		bool pointcloud_id_is_valid(const int id) const;
 
-		cgv::render::render_types::rgba& object_color(const int id);
+		cgv::rgba& object_color(const int id);
 		/// access to the palette objects' render styles
 		cgv::render::point_render_style& point_style();
 		/// access to the palette objects' render styles
@@ -207,7 +206,7 @@ namespace vrui {
 		  * \param[in] points            a pointcloud
 		  *	\param[out] point_positions	 preview point positions
 		  * \param[out] point_colors     preview point colors */
-		static void generate_preview(point_cloud& points, std::vector<vec3>& point_positions, std::vector<rgb8>& point_colors, int detail_level = 0);
+		static void generate_preview(point_cloud& points, std::vector<cgv::vec3>& point_positions, std::vector<cgv::rgb8>& point_colors, int detail_level = 0);
 
 
 		friend class picked_object;

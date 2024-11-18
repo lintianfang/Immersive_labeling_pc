@@ -16,9 +16,9 @@
 #include "generic_attribute_buffer.h"
 
 //chunk meta data block
-struct chunk_meta_data : public cgv::render::render_types {
-	vec4 aabb_pmin;	//vec4 because opengl extents vec3 to 16 Bytes
-	vec4 aabb_pmax;
+struct chunk_meta_data {
+	cgv::vec4 aabb_pmin;	//vec4 because opengl extents vec3 to 16 Bytes
+	cgv::vec4 aabb_pmax;
 	GLuint size;
 	GLuint max_size; 			//max_size is not expected to be changed on device side
 };
@@ -27,7 +27,7 @@ struct chunk_meta_data : public cgv::render::render_types {
 
 
 template <typename POINT>
-struct chunk : public cgv::render::render_types {
+struct chunk {
 	std::vector<POINT> points;
 	//is used as index in other point attribute arrays
 	std::vector<GLuint> point_ids;
@@ -39,7 +39,7 @@ private:
 	GLuint point_id_buffer_p = 0;
 
 	GLuint meta_data_buffer_p = 0;
-	box3 aabb_p;
+	cgv::box3 aabb_p;
 	GLuint reserved_size_p = 0; //max number of points held by this chunk without reallocating buffers
 	
 	cgv::render::context* ctx_ptr = nullptr;
@@ -262,7 +262,7 @@ public:
 
 class int24_ivec3_hasher {
 public:
-	inline size_t operator()(const cgv::render::render_types::ivec3& v) const {
+	inline size_t operator()(const cgv::ivec3& v) const {
 		size_t sx = v.x() & 0x00FFFFFF;
 		size_t sy = (size_t)(v.y() & 0x00FFFFFF) << 24;
 		size_t sz = (size_t)(v.z() & 0x00FFFFFF) << 48;
@@ -271,9 +271,9 @@ public:
 };
 
 template<typename POINT>
-struct chunk_point_iterator : public cgv::render::render_types {
-	typename std::unordered_map<ivec3, std::shared_ptr<chunk<POINT>>, int24_ivec3_hasher>::iterator chunk_iterator;
-	typename std::unordered_map<ivec3, std::shared_ptr<chunk<POINT>>, int24_ivec3_hasher>::iterator chunks_end;
+struct chunk_point_iterator{
+	typename std::unordered_map<cgv::ivec3, std::shared_ptr<chunk<POINT>>, int24_ivec3_hasher>::iterator chunk_iterator;
+	typename std::unordered_map<cgv::ivec3, std::shared_ptr<chunk<POINT>>, int24_ivec3_hasher>::iterator chunks_end;
 	POINT* pnt_ptr = nullptr;
 	POINT* pnts_end = nullptr;
 	
@@ -313,8 +313,26 @@ struct chunk_point_iterator : public cgv::render::render_types {
 };
 
 template <typename POINT>
-class chunks : public cgv::render::render_types {
+class chunks{
 public:
+	//types in cgv namespace
+	using ivec2 = cgv::ivec2;
+	using ivec3 = cgv::ivec3;
+	using dvec2 = cgv::dvec2;
+	using vec2 = cgv::vec2;
+	using vec3 = cgv::vec3;
+	using vec4 = cgv::vec4;
+	using mat3 = cgv::mat3;
+	using mat4 = cgv::mat4;
+	using mat34 = cgv::mat34;
+	using dmat4 = cgv::dmat4;
+	using quat = cgv::quat;
+	using rgb = cgv::rgb;
+	using rgba = cgv::rgba;
+	using rgb8 = cgv::rgb8;
+	using rgba8 = cgv::rgba8;
+	using box3 = cgv::box3;
+
 	using chunk_type = chunk<POINT>;
 	using chunk_map_t = std::unordered_map<ivec3, chunk_type, int24_ivec3_hasher>;
 	using chunk_iterator_t = typename std::unordered_map<ivec3, std::shared_ptr<chunk_type>, int24_ivec3_hasher>::iterator;
@@ -416,15 +434,15 @@ public:
 	}
 
 	chunk<POINT>& at(const int x, const int y, const int z) {
-		return *chunk_map.at(ivec3(x, y, z));
+		return *chunk_map.at(cgv::ivec3(x, y, z));
 	}
 
-	chunk<POINT>& at(const ivec3 &v) {
+	chunk<POINT>& at(const cgv::ivec3 &v) {
 		return *chunk_map.at(v);
 	}
 
 	//can also create a new chunk on demand
-	chunk<POINT>& get_chunk(const ivec3& v) {
+	chunk<POINT>& get_chunk(const cgv::ivec3& v) {
 		auto& chunk_ptr = chunk_map[v];
 		//initialize chunk on demand
 		if (!chunk_ptr) {
@@ -434,10 +452,10 @@ public:
 		return *chunk_ptr;
 	}
 
-	ivec3 chunk_index_from_point(const vec3& pnt) const {
-		dvec3 tmp = dvec3(pnt) / chunk_cube_size();
+	cgv::ivec3 chunk_index_from_point(const cgv::vec3& pnt) const {
+		cgv::dvec3 tmp = cgv::dvec3(pnt) / chunk_cube_size();
 		tmp.floor();
-		return ivec3(tmp.x(), tmp.y(), tmp.z());
+		return cgv::ivec3(tmp.x(), tmp.y(), tmp.z());
 	}
 
 	void download_buffers() {
@@ -869,7 +887,7 @@ public:
 		chunk_extents_p = std::numeric_limits<float>::max();
 
 
-		auto& chunk_ref = get_chunk(cgv::render::render_types::ivec3(0));
+		auto& chunk_ref = get_chunk(ivec3(0));
 		
 		unsigned idx = 0;
 		for (auto p = points.begin(); p < points.end(); ++p) {

@@ -10,7 +10,7 @@ addProjectDeps=["cgv_utils","cgv_type","cgv_data","cgv_base", "cgv_signal", "cgv
 				"rect_pack", "rgbd_control_no_interactor", "cgv_math"
 ];
 addDependencies=["opengl", "glu"];
-addSharedDefines=["POINTCLOUD_CLEANING_TOOL_EXPORTS","CG_NUI_EXPORTS"];
+addSharedDefines=["POINTCLOUD_CLEANING_TOOL_EXPORTS"];
 addCommandLineArguments=[
 	after("type(shader_config):shader_path='".INPUT_DIR."/shader;".CGV_DIR."/libs/cgv_gl/glsl'","cg_fltk"),	'config:"'.INPUT_DIR.'/config.def"'
 ];

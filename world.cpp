@@ -128,12 +128,12 @@ namespace pc_cleaning_tool {
 		renderer_data_outdated = false;
 	}
 
-	cgv::render::render_types::box3& world::ref_floor_box()
+	box3& world::ref_floor_box()
 	{
 		return boxes[0];
 	}
 
-	cgv::render::render_types::rgb& world::ref_floor_box_clr()
+	rgb& world::ref_floor_box_clr()
 	{
 		return box_colors[0];
 	}

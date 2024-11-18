@@ -32,7 +32,7 @@ namespace vrui {
 	{
 	}
 
-	int palette::add_object(const PaletteObject shape, const vec3& position, const rgba& color, const PaletteObjectGroup pog)
+	int palette::add_object(const PaletteObject shape, const cgv::vec3& position, const cgv::rgba& color, const PaletteObjectGroup pog)
 	{
 		int id = palette_object_shapes.size();
 		palette_object_shapes.emplace_back(shape);
@@ -57,7 +57,7 @@ namespace vrui {
 		return id;
 	}
 
-	int palette::add_pointcloud(const vec3* point_positions, const rgb8* point_colors, const size_t size, const vec3& position, const quat& rotation)
+	int palette::add_pointcloud(const cgv::vec3* point_positions, const cgv::rgb8* point_colors, const size_t size, const cgv::vec3& position, const cgv::quat& rotation)
 	{
 		int pc_id = point_clouds_point_positions.size();
 		point_cloud_positions.push_back(position);
@@ -67,19 +67,19 @@ namespace vrui {
 		point_clouds_point_colors.emplace_back(size);
 		point_cloud_array_managers.emplace_back();
 
-		memcpy(point_clouds_point_positions[pc_id].data(), point_positions, size * sizeof(vec3));
-		memcpy(point_clouds_point_colors[pc_id].data(), point_colors, size * sizeof(rgba8));
+		memcpy(point_clouds_point_positions[pc_id].data(), point_positions, size * sizeof(cgv::vec3));
+		memcpy(point_clouds_point_colors[pc_id].data(), point_colors, size * sizeof(cgv::rgba8));
 		return pc_id;
 	}
 	
-	void palette::replace_pointcloud(const int pc_id, const vec3* point_positions, const rgb8* point_colors, const size_t size)
+	void palette::replace_pointcloud(const int pc_id, const cgv::vec3* point_positions, const cgv::rgb8* point_colors, const size_t size)
 	{
 		replace_pointcloud(pc_id, point_positions, point_colors, size, point_cloud_positions[pc_id], point_cloud_rotations[pc_id]);
 		palette_changed = true;
 	}
 
 
-	void palette::replace_pointcloud(const int pc_id, const vec3* point_positions, const rgb8* point_colors, const size_t size, const vec3& position, const quat& rotation)
+	void palette::replace_pointcloud(const int pc_id, const cgv::vec3* point_positions, const cgv::rgb8* point_colors, const size_t size, const cgv::vec3& position, const cgv::quat& rotation)
 	{
 		point_cloud_positions[pc_id] = position;
 		point_cloud_rotations[pc_id] = rotation;
@@ -88,7 +88,7 @@ namespace vrui {
 		point_clouds_point_colors[pc_id].resize(size);
 		if (size > 0) {
 			memcpy(point_clouds_point_positions[pc_id].data(), point_positions, size * sizeof(vec3));
-			memcpy(point_clouds_point_colors[pc_id].data(), point_colors, size * sizeof(rgb8));
+			memcpy(point_clouds_point_colors[pc_id].data(), point_colors, size * sizeof(cgv::rgb8));
 		}
 		palette_changed = true;
 	}
@@ -104,7 +104,7 @@ namespace vrui {
 	}
 
 
-	int palette::pick_object(const vec3& pnt, const cgv::render::render_types::mat34& palette_pose, float& dist)
+	int palette::pick_object(const cgv::vec3& pnt, const cgv::mat34& palette_pose, float& dist)
 	{
 		vec3 picking_position_rhand = pnt;
 		dist = std::numeric_limits<float>::max();
@@ -119,7 +119,7 @@ namespace vrui {
 		return -1;
 	}
 
-	int palette::trigger_object(const vec3& pnt, const cgv::render::render_types::mat34& palette_pose, float& dist, bool only_once_between_objects)
+	int palette::trigger_object(const cgv::vec3& pnt, const cgv::mat34& palette_pose, float& dist, bool only_once_between_objects)
 	{
 		// check for picked object
 		int nearest_palette_idx = pick_object(pnt, palette_pose, dist);
@@ -236,7 +236,7 @@ namespace vrui {
 		cgv::render::ref_point_renderer(ctx, 1);
 	}
 
-	cgv::render::render_types::rgba& palette::object_color(const int id)
+	cgv::rgba& palette::object_color(const int id)
 	{
 		return palette_object_colors[id];
 	}
@@ -299,7 +299,7 @@ namespace vrui {
 	}
 
 
-	void palette::set_colors(const std::vector<rgba>& palette_colors)
+	void palette::set_colors(const std::vector<cgv::rgba>& palette_colors)
 	{
 		palette_changed = true;
 
@@ -324,10 +324,10 @@ namespace vrui {
 
 		auto& li = palette_text_label_ids[obj_ix];
 		if (li == -1) {
-			li = palette_text_labels.add_label(txt, rgba(0.5, 0.5, 0.5, 0.75));
+			li = palette_text_labels.add_label(txt, cgv::rgba(0.5, 0.5, 0.5, 0.75));
 		}
 		else {
-			palette_text_labels.set_label(li, txt, rgba(0.5, 0.5, 0.5, 0.75));
+			palette_text_labels.set_label(li, txt, cgv::rgba(0.5, 0.5, 0.5, 0.75));
 			//palette_text_labels.update_label_text(li, name);
 		}
 
@@ -346,7 +346,7 @@ namespace vrui {
 		palette_object_data[id] = data_ptr;
 	}
 
-	void palette::render_palette(cgv::render::context& ctx, const mat34& pose) {
+	void palette::render_palette(cgv::render::context& ctx, const cgv::mat34& pose) {
 		static const quat object_tilt = quat(vec3(0, 0, 1), cgv::math::deg2rad(-37.5f));
 
 		
@@ -419,8 +419,8 @@ namespace vrui {
 				GLuint offset_buffer = sphere_frame_offset_buffer;
 				GLuint color_buffer = sphere_frame_color_buffer;
 				
-				std::vector<vec4> offsets;
-				std::vector<rgba> colors;
+				std::vector<cgv::vec4> offsets;
+				std::vector<cgv::rgba> colors;
 
 				for (auto& sfi : sphere_frame_indices) {
 					offsets.emplace_back(palette_object_positions[sfi], 1.f);
@@ -430,8 +430,8 @@ namespace vrui {
 				auto& prog = instanced_rendering_prog();
 
 				glNamedBufferData(point_buffer, sphere_points.size() * sizeof(vec3), sphere_points.data(), GL_STATIC_DRAW);
-				glNamedBufferData(offset_buffer, offsets.size() * sizeof(vec4), offsets.data(), GL_STATIC_DRAW);
-				glNamedBufferData(color_buffer, colors.size() * sizeof(rgba), colors.data(), GL_STATIC_DRAW);
+				glNamedBufferData(offset_buffer, offsets.size() * sizeof(cgv::vec4), offsets.data(), GL_STATIC_DRAW);
+				glNamedBufferData(color_buffer, colors.size() * sizeof(cgv::rgba), colors.data(), GL_STATIC_DRAW);
 			}
 
 			// render rounding corner box renderer for palette
@@ -488,7 +488,7 @@ namespace vrui {
 		auto model_view = ctx.get_modelview_matrix();
 		ctx.push_modelview_matrix();
 		for (int i = 0; i < point_clouds_point_positions.size();++i) {
-			dmat4 model = cgv::math::translate4<float>(point_cloud_positions[i]) * cgv::math::scale4(vec3(point_cloud_scales[i])); //TODO add rotation
+			cgv::dmat4 model = cgv::math::translate4<float>(point_cloud_positions[i]) * cgv::math::scale4(vec3(point_cloud_scales[i])); //TODO add rotation
 			ctx.set_modelview_matrix(model_view * model);
 			auto& pr = cgv::render::ref_point_renderer(ctx);
 			if (point_clouds_point_positions[i].size() == 0)
@@ -514,7 +514,7 @@ namespace vrui {
 		palette_changed = false;
 	}
 
-	void palette::generate_preview(point_cloud& points, std::vector<vec3>& point_positions, std::vector<rgb8>& point_colors, int detail_level)
+	void palette::generate_preview(point_cloud& points, std::vector<vec3>& point_positions, std::vector<cgv::rgb8>& point_colors, int detail_level)
 	{
 		static cgv::pointcloud::octree_lod_generator<cgv::pointcloud::SimpleLODPoint> lod_generator;
 
@@ -522,7 +522,7 @@ namespace vrui {
 		points.create_colors(); // create colors if not already existing
 
 		//create a scaled copy
-		dvec3 centroid(0);
+		cgv::dvec3 centroid(0);
 		box3 bounds;
 		int nr_points = points.get_nr_points();
 		for (int i = 0; i < nr_points; ++i) {

@@ -24,7 +24,7 @@ namespace vrui {
 		int preview_detail_level;
 		int toggle_delete_id; // palette object handle for toggle delete button
 	
-		ivec2 grid_dimensions;
+		cgv::ivec2 grid_dimensions;
 		int highlighted_slot; // stores index of highlighted palette slot
 	public:
 		static double constexpr step_width = 0.05;

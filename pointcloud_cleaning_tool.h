@@ -3,13 +3,13 @@
 #include <cgv/base/node.h>
 #include <cgv/math/fvec.h>
 #include <cgv/media/color.h>
+#include <cgv/math/functions.h>
 #include <cgv/gui/event_handler.h>
 #include <cgv/gui/provider.h>
 #include <cgv/data/data_view.h>
 #include <cgv/render/drawable.h>
 #include <cgv/render/shader_program.h>
 #include <cgv/render/texture.h>
-#include <cgv/render/render_types.h>
 #include <cgv/utils/statistics.h>
 #include <cgv_gl/point_renderer.h>
 #include <cgv_gl/cone_renderer.h>
@@ -33,6 +33,7 @@
 #include "vr_labels.h"
 #include "world.h"
 #include "selection_tool.h"
+#include "hole_fill_ctrl_pts.h"
 #include "statistics_collection.h"
 #include "pointcloud_transformation_state.h"
 #include "point_cloud_registration_tool.h"
@@ -50,6 +51,9 @@
 #include <future>
 #include <array>
 #include <set>
+#include <io.h>
+#include <fstream>
+#include <iostream>
 
 #include <libs/point_cloud/point_cloud_provider.h>
 
@@ -94,8 +98,8 @@ enum InteractionMode {
 	LABELING = 1,
 	CONFIG = 2,
 	PUSHING = 3,
-	TRANSFORMING = 4,
-	RGBD_INPUT = 5,
+	RGBD_INPUT = 4,
+	HOLE_FILL = 5,
 	NUM_OF_INTERACTIONS
 };
 
@@ -143,6 +147,15 @@ class pointcloud_cleaning_tool :
 	public cgv::gui::provider
 {
 public:
+	//types in cgv namespace
+	using vec3 = cgv::vec3;
+	using vec4 = cgv::vec4;
+	using mat3 = cgv::mat3;
+	using mat4 = cgv::mat4;
+	using quat = cgv::quat;
+	using rgb = cgv::rgb;
+	using rgba = cgv::rgba;
+
 	//type alias for point format used by the clod renderer
 	using LODPoint = cgv::render::clod_point_renderer::Point;
 
@@ -170,7 +183,8 @@ public:
 	void finish_draw(cgv::render::context& ctx) override;
 
 	void on_device_change(void* kit_handle, bool attach);
-
+	/// create several modes for easy picking
+	void render_candidate_modes(cgv::render::context& ctx);
 	/// helper functions for gui rendering 
 	void render_a_handhold_arrow(cgv::render::context& ctx, rgb c, float r);
 	/// creates a palette for label picking
@@ -231,12 +245,16 @@ protected:
 	//for comparing two point clouds
 	void on_load_comparison_point_cloud_1_cb();
 	void on_load_comparison_point_cloud_2_cb();
+	void on_load_annotated_point_cloud_cb();
+	void on_compare_annotated_data();
 	void on_load_comparison_point_cloud_cb();
 	void on_clear_comparison_point_cloud_cb();
-	//for loading extra point cloud
-	void on_load_extra_point_cloud_cb();
-	void on_merge_pc_cb();
+	void on_load_ori_pc_cb();
+	void on_load_anno_pcs_cb();
+	void getdirectorylist(const std::string& dirpath, std::vector<std::string>& directorylist);
+	void getfilelist(const std::string& dirpath, std::vector<std::string>& filelist);
 	void on_load_CAD_cb();
+	void on_load_scannet_gt_cb();
 	///reacts on trigger crossing the threshold
 	void on_throttle_threshold(const int ci, const bool low_high);
 	/// 
@@ -392,6 +410,14 @@ protected:
 
 	void draw_mesh();
 
+	void adapt_parameters(const int current_framerate);
+
+	vec3 bezier_point(double t, const vec3 p0, vec3 p1, vec3 p2, vec3 p3);
+
+	vec3 interpolate(const vec3& p0, const vec3& p1, float t);
+
+	point_cloud generateBezierSurface(const vec3& p0, const vec3& p1, const vec3& p2, const vec3& p3, int numPoints);
+
 private:
 	static constexpr float throttle_threshold = 0.25f; //for on_throttle_threshold
 
@@ -417,12 +443,12 @@ private:
 
 	bool file_contains_label_groups;
 
-	//for comparing two point clouds
-	point_cloud pc_1;
-	point_cloud pc_2;
-	//for loading extra point cloud from drive
-	point_cloud pc_extra;
-	
+	//for comparing two point clouds, pc_1 is default ground truth
+	point_cloud pc_1, pc_2, pc_gt;
+	std::vector<point_cloud> pc_list;
+
+	// for loading the annotated ground truth
+	point_cloud pc_annotated;
 
 	GLint visible_point_groups;
 
@@ -510,6 +536,12 @@ private:
 	std::unique_ptr<std::ofstream> fps_watch_file_ptr, labeling_watch_file_ptr, labeling_cpu_watch_file_ptr, draw_watch_file_ptr, reduce_watch_file_ptr, reduce_cpu_watch_file_ptr;
 	std::string fps_watch_file_name, labeling_time_watch_file_name, labeling_cpu_watch_file_name, draw_time_watch_file_name, reduce_time_watch_file_name, reduce_cpu_time_watch_file_name;
 	bool log_fps, log_labeling_gpu_time, log_labeling_cpu_time, log_reduce_time, log_reduce_cpu_time, log_draw_time;
+	bool adapt_clod;
+	int desired_fps = 50;
+	int stable_fps = 70;
+	float adaptation_rate = 0.05f;
+	double frame_rate = 0.0;
+	double frame_time = 0.0;
 
 	size_t tool_perf_log_size = 10;
 	std::chrono::duration<double> diff_label_cpu;
@@ -577,18 +609,23 @@ private:
 	/*gui rendering */
 	static constexpr unsigned point_selection_hand = 1; //which hand is used for point selection (0=left, 1=right)
 	static constexpr unsigned palette_hand = 0; //which hand is used for point selection (0=left, 1=right)
+	static constexpr unsigned mode_selection_hand = 0; //which hand is used for mode selection (0=left, 1=right)
 	
 	int32_t point_selection_group_mask;
 	int32_t point_selection_exclude_group_mask;
 	int32_t default_point_selection_group_mask;
 	int32_t default_point_selection_exclude_group_mask;
-	render_types::rgba point_selection_color;
-	render_types::rgba default_point_selection_color;
+	rgba point_selection_color;
+	rgba default_point_selection_color;
 
 	//interacts with labeled points in buffers
 	box_selection_tool box_shaped_selection;
 	bool box_shaped_selection_is_constraint;
 	int selection_touched_corner = -1;
+
+	// control points selection for hole filling
+	ctrl_pts ctrl_points_selection;
+	bool trigger_pressed = false;
 
 	pct::point_cloud_registration_tool point_cloud_registration;
 	std::shared_ptr<pct::point_cloud_clipboard> clipboard_ptr;
@@ -662,6 +699,7 @@ private:
 
 	bool show_text_labels = true;
 	bool show_controller_labels = true;
+	bool show_left_bar = true;
 	/// stores text labels (text labels means visible text for the user. Not to confuse with point labels)
 	vr_labels text_labels;
 	/// contains label ids of currently active help text labels
@@ -675,12 +713,14 @@ private:
 	/// holds controller button labels for both controllers
 	std::array<pct::controller_labels,2> controller_labels;
 	/// multi dimensional structure that holds handles for use with controller_labels
-	std::array<std::array<std::array<std::vector<int>,pct::CLP_NUM_LABEL_PLACEMENTS>, NUM_OF_INTERACTIONS>,2> controller_label_variants;
+	std::array<std::array<std::array<std::vector<int>, pct::CLP_NUM_LABEL_PLACEMENTS>, NUM_OF_INTERACTIONS>, 2> controller_label_variants;
 	int paste_mode_controller_label_variant_index;
 	int box_is_constraint_label_variant;
+	int paste_is_shown;
 	int clear_box_label_variant;
 	int apply_spacing_label_variant;
 	rgba controller_label_color;
+	int box_is_active_labeling_variant;
 
 	//semantic3d ground truth .labels
 	std::vector<rgb> gt_clr;
@@ -700,7 +740,16 @@ private:
 
 	//debug variables
 	std::vector<std::pair<ivec3, chunk<LODPoint>*>> highlighted_chunks;
-	std::vector<cgv::render::render_types::vec3> highlighted_points;
+	std::vector<vec3> highlighted_points;
+
+	//store control points for hole filling
+	std::vector<vec3> ctrl_pts;
+	std::vector<rgb> ctrl_pts_clrs;
+	//std::vector<vec3> surface_pts;
+	//std::vector<rgb> surface_pts_clrs;
+	point_cloud surface_pts;
+	point_cloud filling_pts;
+	bool show_surface_pts = false;
 
 	// store trajectory of hmd
 	std::vector<vec3> tra_las_points;
@@ -708,13 +757,10 @@ private:
 	std::vector<quat> tra_las_ori;
 	std::vector<quat> trajectory_orientation;
 	std::vector<cgv::math::fvec<float, 4>> trajectory_color;
-	vec3 hmd_last_pos;
-	vec3 hmd_pos;
-	quat hmd_last_ori;
-	quat hmd_ori;
+	vec3 hmd_last_pos, hmd_pos;
+	quat hmd_last_ori, hmd_ori;
 	mat3 hmd_ori3;
-	mat34 hmd_pose34;
-	mat34 hmd_trans_palette;
+	mat34 hmd_pose34, hmd_trans_palette;
 
 	// whether record trajectory of HMD
 	bool tra_hmd;
@@ -749,6 +795,15 @@ private:
 	mesh_type M, M2;
 
 	cgv::render::mesh_render_info mesh_info;
+
+	//mode selection
+	cgv::render::sphere_render_style sphere_style_lhand_modes;
+
+	std::vector<vec3> mode_spheres_pos;
+	std::vector<rgb> mode_spheres_clr;
+
+	bool is_selecting_mode = false;
+
 };
 
 #include <cgv/config/lib_end.h>

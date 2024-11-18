@@ -7,6 +7,9 @@
 
 #include <cgv/media/color.h>
 
+using rgb = cgv::rgb;
+using rgb8 = cgv::rgb8;
+
 enum class point_label_group {
 	DELETED = 0x0000,	//deleted points must not be in any group
 	VISIBLE = 0x0001,	//meber of first group with normal clod rendering (the default group) and label 0

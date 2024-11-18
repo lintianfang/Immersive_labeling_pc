@@ -1,5 +1,4 @@
 #pragma once
-#include <cgv/render/render_types.h>
 #include <cgv_gl/box_renderer.h>
 #include <cgv_gl/sphere_renderer.h>
 #include <cgv_gl/box_wire_renderer.h>
@@ -8,6 +7,8 @@
 #include "label_shader_manager.h"
 #include "point_labels.h"
 
+
+
 enum class box_selection_phase {
 	NO_POINT_CONFIRMED,
 	FIRST_POINT_CONFIRMED,
@@ -15,7 +16,7 @@ enum class box_selection_phase {
 };
 
 //this class deals with the visuals of the selection tool
-class selection_tool : public cgv::render::render_types {
+class selection_tool {
 	static uint32_t constexpr selection_flag = (uint32_t)point_label_group::SELECTED_BIT;
 };
 
@@ -26,6 +27,11 @@ the boxes corners can be used to further adapt the selected area
 a 
 */
 class box_selection_tool : public selection_tool {
+
+	using box3 = cgv::box3;
+	using vec3 = cgv::vec3;
+	using quat = cgv::quat;
+
 	box3 selection_box;
 	quat box_orientation;
 	vec3 box_position;

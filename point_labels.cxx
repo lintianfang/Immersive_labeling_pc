@@ -1,6 +1,5 @@
 #include "point_labels.h"
 
-#include <cgv/render/render_types.h>
 #include <regex>
 
 
@@ -32,7 +31,7 @@ void parse_label_mappings(std::istream& is, std::unordered_map<unsigned int, std
 			}
 			else if (value == "color") {
 				int32_t color = stol(part_b, 0, 16);
-				(*color_mappings)[label] = cgv::render::render_types::rgb8((color>>16)&0xFF,(color>>8)&0xFF,color&0xFF);
+				(*color_mappings)[label] = rgb8((color>>16)&0xFF,(color>>8)&0xFF,color&0xFF);
 			}
 			
 		}

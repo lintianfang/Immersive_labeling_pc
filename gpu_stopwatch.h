@@ -2,7 +2,6 @@
 #include <vector>
 #include <array>
 #include <cgv/render/context.h>
-#include <cgv/render/render_types.h>
 #include <cgv_gl/renderer.h>
 
 namespace pct {

@@ -5,8 +5,8 @@
 namespace vrui {
 
 	namespace {
-		const cgv::render::render_types::rgba default_sphere_color(0.38);
-		const cgv::render::render_types::rgba highlight_sphere_color(0.05,0.78,0.17,1.0);
+		const cgv::rgba default_sphere_color(0.38);
+		const cgv::rgba highlight_sphere_color(0.05,0.78,0.17,1.0);
 	}
 
 	point_cloud_palette_slot* point_cloud_palette::find_next_empty_slot()
@@ -45,7 +45,7 @@ namespace vrui {
 	void point_cloud_palette::highlight(int slot_ix)
 	{
 		int size = grid_dimensions.x() * grid_dimensions.y();
-		std::vector<rgba> colors(size, default_sphere_color);
+		std::vector<cgv::rgba> colors(size, default_sphere_color);
 		if (slot_ix >= 0 && slot_ix < size)
 			colors[slot_ix] = highlight_sphere_color;
 		this->set_colors(colors);
@@ -55,10 +55,10 @@ namespace vrui {
 
 	void point_cloud_palette::build(int width, int height)
 	{
-		grid_dimensions = ivec2(width, height);
+		grid_dimensions = cgv::ivec2(width, height);
 		sphere_style().radius = 0.02f;
-		box_style().default_extent = vec3(0.04, 0.04, 0.04);
-		wire_box_style().default_extent = vec3(0.04, 0.04, 0.04);
+		box_style().default_extent = cgv::vec3(0.04, 0.04, 0.04);
+		wire_box_style().default_extent = cgv::vec3(0.04, 0.04, 0.04);
 
 		//sphere grid
 		uintptr_t num_center_spheres = 0;
@@ -70,13 +70,13 @@ namespace vrui {
 				//add sphere to palette
 				int id = this->add_object(
 					PaletteObject::PO_SPHERE_FRAME,
-					vec3(ix * step_width, 0.1, -iz * step_width),
+					cgv::vec3(ix * step_width, 0.1, -iz * step_width),
 					default_sphere_color);
 				entity.sphere_object_id = id;
 
 				// allocate space for pointclouds
-				vec3 position = vec3(ix * step_width, 0.1, -iz * step_width);
-				entity.point_cloud_handle = this->add_pointcloud(nullptr, nullptr, 0, position, quat(1.f, 0.f, 0.f, 0.f));
+				cgv::vec3 position = cgv::vec3(ix * step_width, 0.1, -iz * step_width);
+				entity.point_cloud_handle = this->add_pointcloud(nullptr, nullptr, 0, position, cgv::quat(1.f, 0.f, 0.f, 0.f));
 				entity.record_id = -1;
 				entity.preview_generated = false;
 				// store handles
@@ -91,13 +91,13 @@ namespace vrui {
 	{
 		//create preview and add to palette
 				
-		std::vector<vec3> point_positions;
-		std::vector<rgb8> point_colors;
+		std::vector<cgv::vec3> point_positions;
+		std::vector<cgv::rgb8> point_colors;
 
 		if (record.points) {
 			generate_preview(*record.points, point_positions, point_colors, preview_detail_level);
 		}
-		std::cout << "rid: " << rid << std::endl;
+
 		//add preview to palette
 		auto* h = find_next_empty_slot();
 		if (h) {
@@ -130,8 +130,8 @@ namespace vrui {
 			if (record_ptr && record_ptr->points) {
 				if (!record_ptr->is_dynamic || !h->preview_generated) {
 					//update preview
-					std::vector<vec3> point_positions;
-					std::vector<rgb8> point_colors;
+					std::vector<cgv::vec3> point_positions;
+					std::vector<cgv::rgb8> point_colors;
 					generate_preview(*record_ptr->points, point_positions, point_colors, preview_detail_level);
 					h->preview_generated = true;
 					this->replace_pointcloud(h->point_cloud_handle, point_positions.data(), point_colors.data(), point_positions.size());

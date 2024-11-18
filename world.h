@@ -9,7 +9,27 @@
 
 namespace pc_cleaning_tool {
 
-	struct ray_box_intersection_information : public cgv::render::render_types {
+	//types in cgv namespace
+	using ivec2 = cgv::ivec2;
+	using ivec3 = cgv::ivec3;
+	using dvec2 = cgv::dvec2;
+	using dvec4 = cgv::dvec4;
+	using vec2 = cgv::vec2;
+	using vec3 = cgv::vec3;
+	using vec4 = cgv::vec4;
+	using mat3 = cgv::mat3;
+	using mat4 = cgv::mat4;
+	using mat34 = cgv::mat34;
+	using dmat4 = cgv::dmat4;
+	using quat = cgv::quat;
+	using dquat = cgv::dquat;
+	using rgb = cgv::rgb;
+	using rgba = cgv::rgba;
+	using rgb8 = cgv::rgb8;
+	using rgba8 = cgv::rgba8;
+	using box3 = cgv::box3;
+
+	struct ray_box_intersection_information{
 		std::vector<vec3> points;
 		std::vector<int>  controller_indices;
 		std::vector<rgb> colors;
@@ -23,7 +43,7 @@ namespace pc_cleaning_tool {
 	{
 		bool renderer_data_outdated = false;
 
-		// environment geometry
+		// environment geometry, including floor and walls
 		std::vector<box3> boxes;
 		std::vector<rgb> box_colors;
 		cgv::render::box_render_style style;

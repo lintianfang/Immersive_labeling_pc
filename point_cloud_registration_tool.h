@@ -36,15 +36,31 @@ namespace pct { //namespace of point cloud cleaning tool
 	*/
 	class point_cloud_registration_tool :
 		public cgv::signal::tacker, //signal handling for rgbd_input
-		public cgv::render::render_types,
 		public pct::clipboard_event_listener //for clipboard event handling
 	{
 
 		std::shared_ptr<point_cloud_clipboard> clipboard;
-		// these 2 point clouds are for registration tool
 		std::array<clipboard_record_id, 2> point_cloud_ids = {-1,-1};
 		
 	public:
+		//types in cgv namespace
+		using ivec2 = cgv::ivec2;
+		using ivec3 = cgv::ivec3;
+		using dvec2 = cgv::dvec2;
+		using vec2 = cgv::vec2;
+		using vec3 = cgv::vec3;
+		using vec4 = cgv::vec4;
+		using mat3 = cgv::mat3;
+		using mat4 = cgv::mat4;
+		using mat34 = cgv::mat34;
+		using dmat4 = cgv::dmat4;
+		using quat = cgv::quat;
+		using rgb = cgv::rgb;
+		using rgba = cgv::rgba;
+		using rgb8 = cgv::rgb8;
+		using rgba8 = cgv::rgba8;
+		using box3 = cgv::box3;
+
 		// indices of point_cloud_ids
 		static constexpr size_t registration_slot = 0;
 		static constexpr size_t live_update_slot = 1;

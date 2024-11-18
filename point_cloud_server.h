@@ -4,7 +4,6 @@
 #include <cgv/base/node.h>
 #include <cgv/render/drawable.h>
 #include <cgv/render/context.h>
-#include <cgv/render/render_types.h>
 #include <point_cloud.h>
 #include "chunks.h"
 #include <octree.h>
@@ -24,6 +23,25 @@
 namespace pct {
 
 	using LODPoint = cgv::render::clod_point_renderer::Point;
+	//types in cgv namespace
+	using ivec2 = cgv::ivec2;
+	using ivec3 = cgv::ivec3;
+	using dvec2 = cgv::dvec2;
+	using dvec4 = cgv::dvec4;
+	using vec2 = cgv::vec2;
+	using vec3 = cgv::vec3;
+	using vec4 = cgv::vec4;
+	using mat3 = cgv::mat3;
+	using mat4 = cgv::mat4;
+	using mat34 = cgv::mat34;
+	using dmat4 = cgv::dmat4;
+	using quat = cgv::quat;
+	using dquat = cgv::dquat;
+	using rgb = cgv::rgb;
+	using rgba = cgv::rgba;
+	using rgb8 = cgv::rgb8;
+	using rgba8 = cgv::rgba8;
+	using box3 = cgv::box3;
 
 	/// LODPoint with an additional integer field used to keep reference the point's original array position
 	struct indexed_point : public cgv::render::clod_point_renderer::Point {
@@ -60,14 +78,14 @@ namespace pct {
 		point_interaction_settings();
 	};
 
-	struct box_uniform : public cgv::render::render_types {
+	struct box_uniform {
 		vec4 aabb_min_p;
 		vec4 aabb_max_p;
 		vec4 translation;
 		quat rotation;
 	};
 
-	struct labeling_constraint : public cgv::render::render_types {
+	struct labeling_constraint {
 		box_uniform label_constraint_box;
 		GLint label_constraint_bits;
 		GLboolean label_constraint_solid_inverted;
@@ -93,13 +111,12 @@ namespace pct {
 		Methods from point_labels.h can be used to create and decode labels
 	*/
 	class point_cloud_server :
-		public cgv::base::node,
-		public cgv::render::render_types
+		public cgv::base::node
 	{
-		
-		cgv::render::context* ctx_ptr;
 
-		std::unordered_map<unsigned, chunks<LODPoint>*> point_cloud_ptrs;
+		cgv::render::context* ctx_ptr;
+		// This point_cloud_ptrs is not used, just from last legacy
+		//std::unordered_map<unsigned, chunks<LODPoint>*> point_cloud_ptrs;
 		unsigned last_id;
 
 		chunks<LODPoint> chunked_points;
@@ -108,7 +125,7 @@ namespace pct {
 		vec3 point_cloud_rotation;
 
 		bool chunks_disabled; //enables alternative code paths which ignore the chunk accelleration data structure
-		float chunk_cube_size;
+		float chunk_cube_size; // input to the chunk constructor
 
 		//shader programs
 
@@ -187,9 +204,11 @@ namespace pct {
 		float compute_chunk_size(point_cloud& source_pc, const point_cloud_preparation_settings& settings);
 
 		void rechunk_point_cloud(float chunk_size);
+		/// compute the lod for new added points
+		void compute_lod_adding_points(point_cloud& source_point_cloud, const point_cloud_preparation_settings& settings);
 
 		// builds a lookup table that can be used to visualize lod values
-		std::vector<cgv::render::render_types::rgba> make_lod_to_color_lut(const float lod_min_level_hue = 230.0 / 360.0, const float lod_max_level_hue = 1.0);
+		std::vector<rgba> make_lod_to_color_lut(const float lod_min_level_hue = 230.0 / 360.0, const float lod_max_level_hue = 1.0);
 
 		// interaction methods
 

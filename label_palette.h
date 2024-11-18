@@ -14,7 +14,7 @@ namespace vrui {
 			builds a grid of spheres with the ids 0 to width*height-1
 			@param PALETTE_COLOR_MAPPING : sphere colors
 		*/
-		void build(const std::vector<rgba>& PALETTE_COLOR_MAPPING, int width = 5, int height = 5, const PaletteObject shape = PaletteObject::PO_BOX_PLANE);
+		void build(const std::vector<cgv::rgba>& PALETTE_COLOR_MAPPING, int width = 5, int height = 5, const PaletteObject shape = PaletteObject::PO_BOX_PLANE);
 	};
 
 }

@@ -7,7 +7,7 @@ box_selection_tool::box_selection_tool()
 	clear_points();
 }
 
-cgv::render::render_types::vec3& box_selection_tool::point(int index)
+cgv::vec3& box_selection_tool::point(int index)
 {
 	return points[index];
 }
@@ -26,7 +26,7 @@ box_selection_phase& box_selection_tool::phase()
 	return phase_p;
 }
 
-cgv::render::render_types::quat& box_selection_tool::orientation()
+cgv::quat& box_selection_tool::orientation()
 {
 	return box_orientation;
 }
@@ -36,7 +36,7 @@ cgv::math::fvec<float,3>& box_selection_tool::translation()
 	return box_position;
 }
 
-cgv::render::render_types::box3 &box_selection_tool::box()
+cgv::box3 &box_selection_tool::box()
 {
 	return selection_box;
 }

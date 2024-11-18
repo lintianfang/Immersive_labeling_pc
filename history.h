@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cgv/render/render_types.h>
 #include <cgv_gl/renderer.h>
 #include <deque>
 
@@ -20,7 +19,7 @@ struct label_operation {
 	GLuint index;
 };
 
-struct operation_span_element : public cgv::render::render_types {
+struct operation_span_element {
 	unsigned op_start;
 	unsigned op_size;
 
@@ -97,7 +96,7 @@ protected:
 
 
 
-class history : public cgv::render::render_types{
+class history{
 	GLuint history_buffer = 0;
 	GLuint history_meta_data_buffer = 0;
 	unsigned history_buffer_capacity = 0;

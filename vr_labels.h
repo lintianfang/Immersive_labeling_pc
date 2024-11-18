@@ -1,5 +1,4 @@
 #pragma once
-#include <cgv/render/render_types.h>
 #include <cgv/render/context.h>
 #include <vr_view_interactor.h>
 #include <cgv_gl/rectangle_renderer.h>
@@ -25,15 +24,33 @@ enum CoordinateSystem
 	NUM_COORDINATE_SYSTEMS
 };
 
-struct place_label_parameter_pack : public cgv::render::render_types {
-	vec3& pos;
-	quat& ori;
+struct place_label_parameter_pack {
+	cgv::vec3& pos;
+	cgv::quat& ori;
 	CoordinateSystem coord_system;
 	LabelAlignment align;
 	float scale;
 };
 
-class vr_labels : public cgv::render::render_types {
+class vr_labels{
+public:
+	//types in cgv namespace
+	using ivec2 = cgv::ivec2;
+	using ivec3 = cgv::ivec3;
+	using dvec2 = cgv::dvec2;
+	using vec2 = cgv::vec2;
+	using vec3 = cgv::vec3;
+	using vec4 = cgv::vec4;
+	using mat3 = cgv::mat3;
+	using mat4 = cgv::mat4;
+	using mat34 = cgv::mat34;
+	using dmat4 = cgv::dmat4;
+	using quat = cgv::quat;
+	using rgb = cgv::rgb;
+	using rgba = cgv::rgba;
+	using rgb8 = cgv::rgb8;
+	using rgba8 = cgv::rgba8;
+	using box3 = cgv::box3;
 public:
 	/// draw all labels marked as visible
 	void draw(cgv::render::context& ctx);

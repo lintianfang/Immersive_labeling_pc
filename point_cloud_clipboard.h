@@ -13,7 +13,7 @@ namespace pct {
 		This struct should contain all data required for restoring a previous state of point data in the point_cloud_cleaning_tool class
 	*/
 	struct point_cloud_record {
-
+		// a record contain a pointer to a point cloud
 		std::unique_ptr<point_cloud> points; //used unique_ptr because point_cloud lacks a move constructor
 
 		// these are used for restoring the state of the stored pointcloud, transformation attributes of the point_cloud class are ignored

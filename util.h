@@ -1,12 +1,17 @@
 #pragma once
 
 
-#include <cgv/math/quat.h>
+#include <cgv/math/quaternion.h>
 #include <cgv/math/fvec.h>
-#include <cgv/render/render_types.h>
 #include <cmath>
 #include <memory>
 #include <functional>
+
+//types in cgv namespace
+using vec3 = cgv::vec3;
+using quat = cgv::quat;
+using dquat = cgv::dquat;
+using box3 = cgv::box3;
 
 
 inline void tesselate_icosahedron(const float a, cgv::math::fvec<float, 3>* points, int* triangles) {
@@ -203,7 +208,7 @@ inline void make_editor_element(GUIProvider& prov,cgv::math::fvec<float,3>& pnt,
 }
 
 template <typename T>
-inline cgv::render::render_types::quat to_quat(const T& roll, const T& pitch, const T& yaw)
+inline quat to_quat(const T& roll, const T& pitch, const T& yaw)
 {
     T cy = cos(yaw * 0.5);
     T sy = sin(yaw * 0.5);
@@ -212,7 +217,7 @@ inline cgv::render::render_types::quat to_quat(const T& roll, const T& pitch, co
     T cr = cos(roll * 0.5);
     T sr = sin(roll * 0.5);
 
-    cgv::render::render_types::quat q;
+    quat q;
     q.w() = cr * cp * cy + sr * sp * sy;
     q.x() = sr * cp * cy - cr * sp * sy;
     q.y() = cr * sp * cy + sr * cp * sy;
@@ -222,14 +227,14 @@ inline cgv::render::render_types::quat to_quat(const T& roll, const T& pitch, co
 }
 
 template <typename T>
-inline cgv::render::render_types::quat euler_angels_to_quat(const cgv::math::fvec<T,3>& euler)
+inline quat euler_angels_to_quat(const cgv::math::fvec<T,3>& euler)
 {
     return to_quat(euler.x(),euler.y(),euler.z());
 }
 
 
-inline cgv::render::render_types::vec3 to_euler_angels(const cgv::render::render_types::dquat& q) {
-    cgv::render::render_types::vec3 angles;
+inline vec3 to_euler_angels(const dquat& q) {
+    vec3 angles;
 
     // roll (x-axis rotation)
     double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());
@@ -247,6 +252,7 @@ inline cgv::render::render_types::vec3 to_euler_angels(const cgv::render::render
     double siny_cosp = 2 * (q.w() * q.z() + q.x() * q.y());
     double cosy_cosp = 1.0 - 2.0 * (q.y() * q.y() + q.z() * q.z());
     angles.z() = (float) std::atan2(siny_cosp, cosy_cosp);
+
     return angles;
 }
 

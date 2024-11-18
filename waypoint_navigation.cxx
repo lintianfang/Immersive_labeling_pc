@@ -1,7 +1,7 @@
 #include "waypoint_navigation.h"
 namespace pct {
 
-	cgv::render::render_types::vec3 waypoint_navigation::next_position(vec3 position, float dt)
+	vec3 waypoint_navigation::next_position(vec3 position, float dt)
 	{
 		if (next_way_point < path.size()) {
 			vec3 dist = path[next_way_point] - position;

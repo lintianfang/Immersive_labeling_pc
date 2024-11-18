@@ -131,10 +131,10 @@ void pct::point_cloud_server::swap_history(std::unique_ptr<history>& ptr)
 
 
 
-cgv::render::render_types::mat4 pct::point_cloud_server::get_point_cloud_model_transform()
+cgv::mat4 pct::point_cloud_server::get_point_cloud_model_transform()
 {
 	return cgv::math::translate4(point_cloud_position)
-		* cgv::math::rotate4<float>(point_cloud_rotation)
+		* cgv::math::rotate4_rpy<float>(point_cloud_rotation)
 		* cgv::math::scale4(point_cloud_scale, point_cloud_scale, point_cloud_scale);
 }
 
@@ -296,14 +296,65 @@ void pct::point_cloud_server::rechunk_point_cloud(float chunk_size)
 	chunk_cube_size = chunk_size;
 }
 
-
-std::vector<cgv::render::render_types::rgba> pct::point_cloud_server::make_lod_to_color_lut(const float lod_min_level_hue, const float lod_max_level_hue)
+void pct::point_cloud_server::compute_lod_adding_points(point_cloud& source_pc, const point_cloud_preparation_settings& settings)
 {
-	std::vector<cgv::render::render_types::rgba> col_lut;
+	std::vector<indexed_point> source_points(source_pc.get_nr_points());
+
+	rgb default_color(1.0, 0.0, 0.0);
+	size_t num_source_points = source_pc.get_nr_points();
+
+	//the octree_lod_generator expects the input points to be an array of structs, so we need to reshape the data
+	for (int i = 0; i < num_source_points; ++i) {
+		source_points[i].position() = source_pc.pnt(i);
+		source_points[i].index = i;
+		if (source_pc.has_colors()) {
+			source_points[i].color() = source_pc.clr(i);
+		}
+		else {
+			//set a default color if its missing in the source point cloud
+			source_points[i].color() = rgb8(default_color);
+		}
+		if (source_pc.has_lods()) {
+
+			source_points[i].level() = source_pc.lod(i);
+
+		}
+		else {
+			source_points[i].level() = 1;
+		}
+	}
+
+	std::vector<indexed_point> indexed_points_with_lod;
+	// have to (re-)compute level of details for each point 
+	/*if (settings.lod_mode == LoDMode::OCTREE) {
+		auto& lod_generator = cgv::pointcloud::ref_octree_lod_generator<indexed_point>(0);
+		lod_generator.allow_dedup() = settings.allow_point_deduplication; //disable deduplication to preserve the number of points / enable for a faster point cloud
+		indexed_points_with_lod = std::move(lod_generator.generate_lods(source_points));
+		//free memory of source_points
+		source_points.swap(std::vector<indexed_point>());
+	}
+	else {
+		//quick and cheap lod generation by assiging lods randomly (will also look cheap)
+		generate_lods_poisson(source_points);
+		indexed_points_with_lod.swap(source_points);
+	}*/
+	indexed_points_with_lod.swap(source_points);
+	// write back the lods, order is changed , resize if needed
+	source_pc.resize_lods();
+	for (int i = 0; i < indexed_points_with_lod.size(); ++i) {
+		source_pc.lod(indexed_points_with_lod[i].index) = indexed_points_with_lod[i].level();
+	}
+	std::cout << "finished lod" << std::endl;
+}
+
+
+std::vector<cgv::rgba> pct::point_cloud_server::make_lod_to_color_lut(const float lod_min_level_hue, const float lod_max_level_hue)
+{
+	std::vector<rgba> col_lut;
 	// generate a lod color lookup table for the show lods feature
 	int max_lod = 0;
 	int num_points = 0;
-
+	// to find the max lod
 	for (auto iter = chunked_points.points_begin(); iter != chunked_points.points_end(); ++iter) {
 		max_lod = std::max((int)iter->level(), max_lod);
 		++num_points;
@@ -489,7 +540,7 @@ std::vector<GLuint> pct::point_cloud_server::count_points_in_sphere(const vec3& 
 
 	// pass to shader, model will be transformed, radius won't change
 	vec4 sphere = dvec4(position.lift()); sphere.w() = radius;
-	std::cout << "sphere " << sphere << std::endl;
+	//std::cout << "sphere " << sphere << std::endl;
 	mat4 float_trans_matrix = concat_trans;
 	tool_prog.set_uniform(*ctx_ptr, "selection_enclosing_sphere", sphere, true);
 	tool_prog.set_uniform(*ctx_ptr, "model_transform", float_trans_matrix, true);
@@ -594,6 +645,7 @@ void pct::point_cloud_server::label_points_in_sphere(const GLint label, const GL
 
 	for (auto& chunk_index_pair : chunks) {
 		auto& ch = *(chunk_index_pair.second);
+		//std::cout << ch.id_buffer() << std::endl;
 		if (ch.size() > 0) {
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, point_id_pos, ch.id_buffer());
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, points_pos, ch.point_buffer());
@@ -710,7 +762,7 @@ void pct::point_cloud_server::label_points_by_clipping(const GLint label, const 
 	auto& label_shaders = ref_label_shader_manager(*ctx_ptr);
 	cgv::render::shader_program& labeling_tool_prog = label_shaders.get_labeling_tool(SS_PLANE);
 	//
-	dmat4 concat_trans = get_point_cloud_model_transform();
+	cgv::dmat4 concat_trans = get_point_cloud_model_transform();
 
 	// find affected chunks with transformed position and scale
 	std::vector<std::pair<const ivec3, chunk<LODPoint>*>> chunks;
@@ -913,10 +965,10 @@ void pct::point_cloud_server::fuse_point_cloud(point_cloud& source, mat4& model_
 	//merge pointclouds
 	auto& pc = source;
 	size_t nr_points = pc.get_nr_points();
-	mat4 transform = inv(get_point_cloud_model_transform()) * model_matrix;
+	cgv::mat4 transform = inv(get_point_cloud_model_transform()) * model_matrix;
 
 	auto& chunked_points = ref_chunks();
-
+	//download all chunked points from GPU
 	chunked_points.download_buffers();
 
 	//create attributes
