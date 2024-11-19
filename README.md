@@ -16,7 +16,7 @@ Please cite using:
   publisher={Elsevier}
 }
 
-Setup: Our method is implemented in C++ with OpenGL and OpenVR. Our test system was equipped with an Intel Core i7-9700F with 8×3.0GHz, 16 GB RAM and an Nvidia GeForce RTX 2080 with 8GB VRAM. Current button design is for HTC Vive Pro.
+Setup: Our method is implemented in C++ with OpenGL and OpenVR. Current button design is for HTC Vive Pro.
 
 Build Instructions:
 
