@@ -108,7 +108,7 @@ namespace {
 // methods
 
 ///
-pointcloud_cleaning_tool::pointcloud_cleaning_tool() : palette_clipboard_record_id(-1){
+pointcloud_labeling_tool::pointcloud_labeling_tool() : palette_clipboard_record_id(-1){
 	set_name("pointcloud_cleaning_tool");
 	
 	point_server_ptr = nullptr;
@@ -234,7 +234,7 @@ pointcloud_cleaning_tool::pointcloud_cleaning_tool() : palette_clipboard_record_
 	sliding_window_size = 100;
 	draw_time = stats::scalar_sliding_window<GLuint64>(sliding_window_size);
 
-	connect(get_animation_trigger().shoot, this, &pointcloud_cleaning_tool::timer_event);
+	connect(get_animation_trigger().shoot, this, &pointcloud_labeling_tool::timer_event);
 	
 	reduce_time_cpu = stats::scalar_sliding_window<double>(sliding_window_size);
 	reduce_time_gpu = stats::scalar_sliding_window<double>(sliding_window_size);
@@ -278,7 +278,7 @@ pointcloud_cleaning_tool::pointcloud_cleaning_tool() : palette_clipboard_record_
 	adapt_clod = false;
 }
 
-pointcloud_cleaning_tool::~pointcloud_cleaning_tool()
+pointcloud_labeling_tool::~pointcloud_labeling_tool()
 {
 	cgv::pointcloud::ref_octree_lod_generator<pct::indexed_point>(-1);
 }
@@ -309,7 +309,7 @@ namespace {
 	};
 }
 ///
-bool pointcloud_cleaning_tool::self_reflect(cgv::reflect::reflection_handler & rh)
+bool pointcloud_labeling_tool::self_reflect(cgv::reflect::reflection_handler & rh)
 {
 	return
 		rh.reflect_member("pointcloud_fit_table", pointcloud_fit_table) &&
@@ -344,7 +344,7 @@ bool pointcloud_cleaning_tool::self_reflect(cgv::reflect::reflection_handler & r
 		rh.reflect_member("clear_selection_labels_after_copy", clear_selection_labels_after_copy);
 }
 ///
-void pointcloud_cleaning_tool::on_set(void * member_ptr)
+void pointcloud_labeling_tool::on_set(void * member_ptr)
 {
 	if (member_ptr == &world.show_environment || member_ptr == &world.show_table || member_ptr == &world.show_floor) {
 		world.clear_scene();
@@ -400,7 +400,7 @@ void pointcloud_cleaning_tool::on_set(void * member_ptr)
 	post_redraw();
 }
 ///
-void pointcloud_cleaning_tool::on_register()
+void pointcloud_labeling_tool::on_register()
 {
 	if (point_cloud_registration.get_provider() == nullptr) {
 		cgv::base::node* node_ptr = const_cast<cgv::base::node*>(dynamic_cast<const cgv::base::node*>(this));
@@ -411,7 +411,7 @@ void pointcloud_cleaning_tool::on_register()
 	}
 }
 ///
-void pointcloud_cleaning_tool::unregister()
+void pointcloud_labeling_tool::unregister()
 {
 	if (point_cloud_registration.get_provider()) {
 		cgv::base::node* node_ptr = const_cast<cgv::base::node*>(dynamic_cast<const cgv::base::node*>(this));
@@ -422,7 +422,7 @@ void pointcloud_cleaning_tool::unregister()
 	}
 }
 ///
-bool pointcloud_cleaning_tool::init(cgv::render::context& ctx)
+bool pointcloud_labeling_tool::init(cgv::render::context& ctx)
 {
 	//glDisable(GL_DEBUG_OUTPUT);
 	cgv::gui::connect_vr_server(true);
@@ -729,7 +729,7 @@ bool pointcloud_cleaning_tool::init(cgv::render::context& ctx)
 }
 
 ///
-void pointcloud_cleaning_tool::clear(cgv::render::context& ctx)
+void pointcloud_labeling_tool::clear(cgv::render::context& ctx)
 {
 	glDeleteQueries(2, gl_render_query);
 	glDeleteQueries(2, reduce_timer_query);
@@ -771,7 +771,7 @@ void pointcloud_cleaning_tool::clear(cgv::render::context& ctx)
 
 
 ///
-void pointcloud_cleaning_tool::init_frame(cgv::render::context& ctx)
+void pointcloud_labeling_tool::init_frame(cgv::render::context& ctx)
 {
 	//auto start_reduce = std::chrono::steady_clock::now();
 	text_labels.init_frame(ctx);
@@ -818,7 +818,7 @@ void pointcloud_cleaning_tool::init_frame(cgv::render::context& ctx)
 	std::cout << "diff_init: " << diff_d.count() << std::endl;*/
 }
 ///
-void pointcloud_cleaning_tool::draw(cgv::render::context & ctx)
+void pointcloud_labeling_tool::draw(cgv::render::context & ctx)
 {
 	if (fps_watch_file_ptr && log_fps && vr_view_ptr->get_rendered_eye() == 2) {
 		frame_time = fps_watch.get_elapsed_time();
@@ -1586,16 +1586,16 @@ void pointcloud_cleaning_tool::draw(cgv::render::context & ctx)
 	std::cout << "diff_d: " << diff_d.count() << std::endl;*/
 }
 ///
-void pointcloud_cleaning_tool::finish_draw(cgv::render::context& ctx) {
+void pointcloud_labeling_tool::finish_draw(cgv::render::context& ctx) {
 
 }
 
-void pointcloud_cleaning_tool::on_device_change(void* kit_handle, bool attach)
+void pointcloud_labeling_tool::on_device_change(void* kit_handle, bool attach)
 {
 	
 }
 
-void pointcloud_cleaning_tool::render_candidate_modes(cgv::render::context& ctx)
+void pointcloud_labeling_tool::render_candidate_modes(cgv::render::context& ctx)
 {
 	cgv::render::sphere_renderer& sr_mode = ref_sphere_renderer(ctx);
 	sr_mode.set_render_style(sphere_style_lhand_modes);
@@ -1604,7 +1604,7 @@ void pointcloud_cleaning_tool::render_candidate_modes(cgv::render::context& ctx)
 	sr_mode.render(ctx, 0, 5);
 }
 ///
-void pointcloud_cleaning_tool::render_a_handhold_arrow(cgv::render::context& ctx, rgb c, float r) {
+void pointcloud_labeling_tool::render_a_handhold_arrow(cgv::render::context& ctx, rgb c, float r) {
 	if (curr_offset_rhand.length() < 1e-6)
 		return;
 	
@@ -1657,7 +1657,7 @@ void add_left_sidebar(vrui::palette& palette, double toolbar_gap = -0.013, doubl
 }
 
 /// (left vr controller) render the palette(choosing a label),left bar(copy_paste), and top bar(selection primitive)
-void pointcloud_cleaning_tool::build_palette()
+void pointcloud_labeling_tool::build_palette()
 {
 	// hard written color mapping, accessible form the shaders as shader storage buffer 
 	PALETTE_COLOR_MAPPING.push_back(rgba(0.885186, 0.349231, 0.384895, 1));
@@ -1817,7 +1817,7 @@ void pointcloud_cleaning_tool::build_palette()
 	}
 }
 
-void pointcloud_cleaning_tool::build_clipboard_palette()
+void pointcloud_labeling_tool::build_clipboard_palette()
 {
 	static const rgba remove_color = rgba(0.501028, 0.51219, 0.540788, 1);
 	static const rgba remove_active_color = rgb8(212, 16, 16);
@@ -1887,7 +1887,7 @@ void pointcloud_cleaning_tool::build_clipboard_palette()
 
 
 /// (right vr controller) render the palette(only the sphere selection primitive)
-void pointcloud_cleaning_tool::render_palette_sphere_on_rhand(cgv::render::context& ctx, const rgba& color) {
+void pointcloud_labeling_tool::render_palette_sphere_on_rhand(cgv::render::context& ctx, const rgba& color) {
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1901,12 +1901,12 @@ void pointcloud_cleaning_tool::render_palette_sphere_on_rhand(cgv::render::conte
 	glDisable(GL_BLEND);
 }
 ///
-void pointcloud_cleaning_tool::set_palette_toolbar_visibilty(bool visibility)
+void pointcloud_labeling_tool::set_palette_toolbar_visibilty(bool visibility)
 {
 	palette.set_top_toolbar_visibility(visibility);
 }
 /// (right vr controller) render the palette(only the cutting plane selection primitive)
-void pointcloud_cleaning_tool::render_palette_plane_on_rhand(cgv::render::context& ctx, const rgba& color) {
+void pointcloud_labeling_tool::render_palette_plane_on_rhand(cgv::render::context& ctx, const rgba& color) {
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1921,7 +1921,7 @@ void pointcloud_cleaning_tool::render_palette_plane_on_rhand(cgv::render::contex
 	glDisable(GL_BLEND);
 }
 /// (right vr controller) render the palette(only the cube selection primitive)
-void pointcloud_cleaning_tool::render_palette_cube_on_rhand(cgv::render::context& ctx, const rgba& color) {
+void pointcloud_labeling_tool::render_palette_cube_on_rhand(cgv::render::context& ctx, const rgba& color) {
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1940,7 +1940,7 @@ void pointcloud_cleaning_tool::render_palette_cube_on_rhand(cgv::render::context
 	glDisable(GL_BLEND);
 }
 ///
-bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
+bool pointcloud_labeling_tool::handle(cgv::gui::event & e)
 {
 	//auto start_t = std::chrono::steady_clock::now();
 	if ((e.get_flags() & cgv::gui::EF_VR) == 0)
@@ -2621,7 +2621,7 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 }
 
 
-void pointcloud_cleaning_tool::on_throttle_threshold(const int ci, const bool low_high) {
+void pointcloud_labeling_tool::on_throttle_threshold(const int ci, const bool low_high) {
 
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
@@ -2683,7 +2683,7 @@ void pointcloud_cleaning_tool::on_throttle_threshold(const int ci, const bool lo
 	}
 }
 
-void pointcloud_cleaning_tool::on_registration_tool_load_point_cloud() {
+void pointcloud_labeling_tool::on_registration_tool_load_point_cloud() {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
 		return;
@@ -2699,7 +2699,7 @@ void pointcloud_cleaning_tool::on_registration_tool_load_point_cloud() {
 	}
 }
 
-void pointcloud_cleaning_tool::on_auto_pilot_load_path()
+void pointcloud_labeling_tool::on_auto_pilot_load_path()
 {
 	std::string fn = cgv::gui::file_open_dialog("txt file with path(*.txt;*)", "Path Files:*.*");
 	if (fn.empty())
@@ -2754,7 +2754,7 @@ void pointcloud_cleaning_tool::on_auto_pilot_load_path()
 	automated_navigation.path.swap(way_points);
 }
 
-void pointcloud_cleaning_tool::on_set_reduce_cpu_time_watch_file()
+void pointcloud_labeling_tool::on_set_reduce_cpu_time_watch_file()
 {
 	reduce_cpu_time_watch_file_name = cgv::gui::file_save_dialog("txt file(*.txt;*.log)", "Time log files:*.log;*.txt");
 	if (reduce_cpu_time_watch_file_name.empty())
@@ -2766,7 +2766,7 @@ void pointcloud_cleaning_tool::on_set_reduce_cpu_time_watch_file()
 	update_views(&reduce_cpu_time_watch_file_name);
 }
 
-void pointcloud_cleaning_tool::on_set_reduce_gpu_time_watch_file()
+void pointcloud_labeling_tool::on_set_reduce_gpu_time_watch_file()
 {
 	reduce_time_watch_file_name = cgv::gui::file_save_dialog("txt file(*.txt;*.log)", "Time log files:*.log;*.txt");
 	if (reduce_time_watch_file_name.empty())
@@ -2778,7 +2778,7 @@ void pointcloud_cleaning_tool::on_set_reduce_gpu_time_watch_file()
 	update_views(&reduce_time_watch_file_name);
 }
 
-void pointcloud_cleaning_tool::on_set_labeling_cpu_time_watch_file()
+void pointcloud_labeling_tool::on_set_labeling_cpu_time_watch_file()
 {
 	labeling_cpu_watch_file_name = cgv::gui::file_save_dialog("txt file(*.txt;*.log)", "Time log files:*.log;*.txt");
 	if (labeling_cpu_watch_file_name.empty())
@@ -2790,7 +2790,7 @@ void pointcloud_cleaning_tool::on_set_labeling_cpu_time_watch_file()
 	update_views(&labeling_cpu_watch_file_name);
 }
 
-void pointcloud_cleaning_tool::on_set_draw_time_watch_file()
+void pointcloud_labeling_tool::on_set_draw_time_watch_file()
 {
 	//reused for draw and reduce
 	draw_time_watch_file_name = cgv::gui::file_save_dialog("txt file(*.txt;*.log)", "Time log files:*.log;*.txt");
@@ -2803,7 +2803,7 @@ void pointcloud_cleaning_tool::on_set_draw_time_watch_file()
 	update_views(&draw_time_watch_file_name);
 }
 
-void pointcloud_cleaning_tool::on_set_labeling_time_watch_file()
+void pointcloud_labeling_tool::on_set_labeling_time_watch_file()
 {
 	labeling_time_watch_file_name = cgv::gui::file_save_dialog("txt file(*.txt;*.log)", "Time log files:*.log;*.txt");
 	if (labeling_time_watch_file_name.empty())
@@ -2815,7 +2815,7 @@ void pointcloud_cleaning_tool::on_set_labeling_time_watch_file()
 	update_views(&labeling_time_watch_file_name);
 }
 
-void pointcloud_cleaning_tool::on_set_fps_watch_file()
+void pointcloud_labeling_tool::on_set_fps_watch_file()
 {
 	fps_watch_file_name = cgv::gui::file_save_dialog("txt file(*.txt;*.log)", "FPS log files:*.log;*.txt");
 	if (fps_watch_file_name.empty())
@@ -2827,12 +2827,12 @@ void pointcloud_cleaning_tool::on_set_fps_watch_file()
 	update_views(&fps_watch_file_name);
 }
 
-void pointcloud_cleaning_tool::on_update_gui()
+void pointcloud_labeling_tool::on_update_gui()
 {
 	post_recreate_gui();
 }
 
-void pointcloud_cleaning_tool::timer_event(double t, double dt) {
+void pointcloud_labeling_tool::timer_event(double t, double dt) {
 
 	if (use_autopilot) {
 		const float* pose = vr_view_ptr->get_current_vr_state()->hmd.pose;
@@ -2858,12 +2858,12 @@ void pointcloud_cleaning_tool::timer_event(double t, double dt) {
 }
 
 /// a quick test that enables to label the point cloud without a VR device 
-void pointcloud_cleaning_tool::test_labeling_of_points() {
+void pointcloud_labeling_tool::test_labeling_of_points() {
 	point_server_ptr->ref_interaction_settings() = point_cloud_interaction_settings;
 	point_server_ptr->label_points_in_sphere((int)point_label_group::SELECTED_BIT, (int)point_label_group::GROUP_MASK, 0, vec3(0), radius_for_test_labeling, point_label_operation::REPLACE);
 }
 
-void pointcloud_cleaning_tool::test_moving_points()
+void pointcloud_labeling_tool::test_moving_points()
 {
 	static bool build_shader = true;
 	static shader_program prog;
@@ -2937,7 +2937,7 @@ void pointcloud_cleaning_tool::test_moving_points()
 	chunked_points.distribute_global_chunk();
 }
 
-void pointcloud_cleaning_tool::test_fill_clipboard()
+void pointcloud_labeling_tool::test_fill_clipboard()
 {
 	point_cloud tmp;
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
@@ -2979,7 +2979,7 @@ void pointcloud_cleaning_tool::test_fill_clipboard()
 	}
 }
 
-void pointcloud_cleaning_tool::push_points(cgv::render::context& ctx, const selection_shape& shape) {
+void pointcloud_labeling_tool::push_points(cgv::render::context& ctx, const selection_shape& shape) {
 	// define buffer space for chunk a
 	constexpr int points_pos = 1, index_pos = 2, labels_pos = 6, point_id_pos = 4, chunk_meta_pos = 29;
 	// define buffer space for chunk b
@@ -3077,14 +3077,14 @@ void pointcloud_cleaning_tool::push_points(cgv::render::context& ctx, const sele
 }
 
 ///
-void pointcloud_cleaning_tool::on_rollback_cb() {
+void pointcloud_labeling_tool::on_rollback_cb() {
 	rollback_last_operation(*get_context());
 }
 ///
-void pointcloud_cleaning_tool::stream_help(std::ostream & os)
+void pointcloud_labeling_tool::stream_help(std::ostream & os)
 {
 }
-void pointcloud_cleaning_tool::update_help_labels(const InteractionMode mode) {
+void pointcloud_labeling_tool::update_help_labels(const InteractionMode mode) {
 	//hide both labels
 	for (int i = 0; i < 2; ++i) {
 		if (li_help[i] != -1)
@@ -3098,7 +3098,7 @@ void pointcloud_cleaning_tool::update_help_labels(const InteractionMode mode) {
 	allways_show_controller_label[0] = tool_help_label_allways_drawn[mode][0];
 	allways_show_controller_label[1] = tool_help_label_allways_drawn[mode][1];
 }
-void pointcloud_cleaning_tool::update_controller_labels()
+void pointcloud_labeling_tool::update_controller_labels()
 {
 	auto default_settings = [this](int ci, int p) {
 		if (controller_label_variants[ci][interaction_mode][p].size() > 0) {
@@ -3174,7 +3174,7 @@ void pointcloud_cleaning_tool::update_controller_labels()
 	}
 }
 
-void pointcloud_cleaning_tool::update_palette()
+void pointcloud_labeling_tool::update_palette()
 {
 	//update color map
 	palette.set_colors(PALETTE_COLOR_MAPPING);
@@ -3185,18 +3185,18 @@ void pointcloud_cleaning_tool::update_palette()
 	}
 }
 
-vec3 pointcloud_cleaning_tool::shape_offset(float radius) const
+vec3 pointcloud_labeling_tool::shape_offset(float radius) const
 {
 	return curr_offset_rhand + cgv::math::normalize(curr_offset_rhand) * radius;
 }
 
-void pointcloud_cleaning_tool::show_clipboard_in_palette(pct::point_cloud_clipboard& pcc)
+void pointcloud_labeling_tool::show_clipboard_in_palette(pct::point_cloud_clipboard& pcc)
 {
 	
 }
 
 
-void pointcloud_cleaning_tool::set_palette_label_text_map(const std::unordered_map<unsigned int, std::string>& map)
+void pointcloud_labeling_tool::set_palette_label_text_map(const std::unordered_map<unsigned int, std::string>& map)
 {
 	static constexpr int labels_begin = 1; //points to "clear label"
 	for (auto& label_name_pair : map) {
@@ -3204,7 +3204,7 @@ void pointcloud_cleaning_tool::set_palette_label_text_map(const std::unordered_m
 	}
 }
 
-void pointcloud_cleaning_tool::colorize_with_height() {
+void pointcloud_labeling_tool::colorize_with_height() {
 	
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
@@ -3258,14 +3258,14 @@ void pointcloud_cleaning_tool::colorize_with_height() {
 	chunked_points.upload_to_buffers();
 }
 ///
-void pointcloud_cleaning_tool::print_point_cloud_info() {
+void pointcloud_labeling_tool::print_point_cloud_info() {
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
 	std::cout << "point loaded: " << source_point_cloud.get_nr_points() << std::endl;
 	std::cout << "chunks used: " << chunked_points.num_chunks() << std::endl;
 }
 /// fills chunked_points with data generated from the source point cloud (source_pc)
-void pointcloud_cleaning_tool::prepare_point_cloud() noexcept
+void pointcloud_labeling_tool::prepare_point_cloud() noexcept
 { 
 	point_server_ptr->use_point_cloud(source_point_cloud, preparation_settings);
 	//make a lod to color lookup table
@@ -3278,7 +3278,7 @@ void pointcloud_cleaning_tool::prepare_point_cloud() noexcept
 }
 
 ///
-void pointcloud_cleaning_tool::on_point_cloud_fit_table()
+void pointcloud_labeling_tool::on_point_cloud_fit_table()
 {
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
@@ -3323,7 +3323,7 @@ void pointcloud_cleaning_tool::on_point_cloud_fit_table()
 	point_server_ptr->ref_point_cloud_position() += move;
 }
 
-void pointcloud_cleaning_tool::on_add_point_cloud_to_clipboard()
+void pointcloud_labeling_tool::on_add_point_cloud_to_clipboard()
 {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
@@ -3347,7 +3347,7 @@ void pointcloud_cleaning_tool::on_add_point_cloud_to_clipboard()
 	post_redraw();
 }
 
-void pointcloud_cleaning_tool::on_load_point_cloud_cb()
+void pointcloud_labeling_tool::on_load_point_cloud_cb()
 {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
@@ -3383,7 +3383,7 @@ void pointcloud_cleaning_tool::on_load_point_cloud_cb()
 	std::cout << "loaded pointcloud " << fn << " with " << source_point_cloud.get_nr_points() << " points!\n";
 }
 
-void pointcloud_cleaning_tool::on_load_comparison_point_cloud_1_cb()
+void pointcloud_labeling_tool::on_load_comparison_point_cloud_1_cb()
 {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
@@ -3402,7 +3402,7 @@ void pointcloud_cleaning_tool::on_load_comparison_point_cloud_1_cb()
 	std::cout << "loaded pointcloud " << fn << " with " << pc_1.get_nr_points() << " points!\n";
 }
 
-void pointcloud_cleaning_tool::on_load_comparison_point_cloud_2_cb()
+void pointcloud_labeling_tool::on_load_comparison_point_cloud_2_cb()
 {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
@@ -3421,7 +3421,7 @@ void pointcloud_cleaning_tool::on_load_comparison_point_cloud_2_cb()
 	std::cout << "loaded pointcloud " << fn << " with " << pc_2.get_nr_points() << " points!\n";
 }
 
-void pointcloud_cleaning_tool::on_load_annotated_point_cloud_cb()
+void pointcloud_labeling_tool::on_load_annotated_point_cloud_cb()
 {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
@@ -3440,7 +3440,7 @@ void pointcloud_cleaning_tool::on_load_annotated_point_cloud_cb()
 	std::cout << "loaded pointcloud " << fn << " with " << pc_annotated.get_nr_points() << " points!\n";
 }
 
-void pointcloud_cleaning_tool::on_compare_annotated_data()
+void pointcloud_labeling_tool::on_compare_annotated_data()
 {
 	for (int i = 0; i < source_point_cloud.get_nr_points(); ++i)
 	{
@@ -3454,7 +3454,7 @@ void pointcloud_cleaning_tool::on_compare_annotated_data()
 	}
 }
 
-void pointcloud_cleaning_tool::on_load_comparison_point_cloud_cb()
+void pointcloud_labeling_tool::on_load_comparison_point_cloud_cb()
 {
 	size_t num_points = pc_2.get_nr_points();
 	if (pc_1.get_nr_points() != num_points || num_points == 0) {
@@ -3513,7 +3513,7 @@ void pointcloud_cleaning_tool::on_load_comparison_point_cloud_cb()
 	std::cout << "Overall IoU: " << overall_iou * 100.0f << "%\n";
 }
 
-void pointcloud_cleaning_tool::on_clear_comparison_point_cloud_cb()
+void pointcloud_labeling_tool::on_clear_comparison_point_cloud_cb()
 {
 	pc_1.clear();
 	pc_2.clear();
@@ -3525,7 +3525,7 @@ void pointcloud_cleaning_tool::on_clear_comparison_point_cloud_cb()
 	post_redraw();
 }
 
-void pointcloud_cleaning_tool::on_load_ori_pc_cb()
+void pointcloud_labeling_tool::on_load_ori_pc_cb()
 {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
@@ -3544,7 +3544,7 @@ void pointcloud_cleaning_tool::on_load_ori_pc_cb()
 	std::cout << "loaded pointcloud " << fn << " with " << pc_gt.get_nr_points() << " points!\n";
 }
 
-void pointcloud_cleaning_tool::on_load_anno_pcs_cb() 
+void pointcloud_labeling_tool::on_load_anno_pcs_cb() 
 {
 	std::string directory_str = cgv::gui::directory_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	std::vector<string> filelists;
@@ -3568,7 +3568,7 @@ void pointcloud_cleaning_tool::on_load_anno_pcs_cb()
 	return annotatedClouds;*/
 }
 
-void pointcloud_cleaning_tool::getdirectorylist(const std::string& dirpath, std::vector<std::string>& directorylist)
+void pointcloud_labeling_tool::getdirectorylist(const std::string& dirpath, std::vector<std::string>& directorylist)
 {
 	std::string path = dirpath + "/*.*";
 	_finddata_t file;
@@ -3587,7 +3587,7 @@ void pointcloud_cleaning_tool::getdirectorylist(const std::string& dirpath, std:
 	_findclose(handle);
 }
 
-void pointcloud_cleaning_tool::getfilelist(const std::string& dirpath, std::vector<std::string>& filelist)
+void pointcloud_labeling_tool::getfilelist(const std::string& dirpath, std::vector<std::string>& filelist)
 {
 	std::string path = dirpath + "/*.*";
 	_finddata_t file;
@@ -3608,7 +3608,7 @@ void pointcloud_cleaning_tool::getfilelist(const std::string& dirpath, std::vect
 	_findclose(handle);
 }
 
-void pointcloud_cleaning_tool::on_load_CAD_cb() {
+void pointcloud_labeling_tool::on_load_CAD_cb() {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
 		return;
@@ -3618,13 +3618,13 @@ void pointcloud_cleaning_tool::on_load_CAD_cb() {
 	std::cout << "loaded CAD " << fn << " with " << pc_2.get_nr_points() << " points!\n";
 }
 
-void pointcloud_cleaning_tool::on_load_scannet_gt_cb() {
+void pointcloud_labeling_tool::on_load_scannet_gt_cb() {
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
 		return;
 }
 
-void pointcloud_cleaning_tool::draw_surface(cgv::render::context& ctx, bool opaque_part)
+void pointcloud_labeling_tool::draw_surface(cgv::render::context& ctx, bool opaque_part)
 {
 	if (have_new_mesh) {
 		// auto-compute mesh normals if not available
@@ -3673,14 +3673,14 @@ void pointcloud_cleaning_tool::draw_surface(cgv::render::context& ctx, bool opaq
 	glCullFace(cull_face);
 }
 
-void pointcloud_cleaning_tool::draw_mesh() {
+void pointcloud_labeling_tool::draw_mesh() {
 	have_new_mesh = true;
 	show_surface = true;
 	show_vertices = true;
 	show_wireframe = true;
 }
 
-void pointcloud_cleaning_tool::adapt_parameters(const int current_framerate) {
+void pointcloud_labeling_tool::adapt_parameters(const int current_framerate) {
 	float temp_ps = source_point_cloud.ref_render_style().pointSize;
 	float temp_clod = source_point_cloud.ref_render_style().CLOD;
 	if (current_framerate < desired_fps) {
@@ -3703,7 +3703,7 @@ void pointcloud_cleaning_tool::adapt_parameters(const int current_framerate) {
 	update_member(&source_point_cloud.ref_render_style().CLOD);
 }
 
-vec3 pointcloud_cleaning_tool::bezier_point(double t, const vec3 p0, const vec3 p1, const vec3 p2, const vec3 p3)
+vec3 pointcloud_labeling_tool::bezier_point(double t, const vec3 p0, const vec3 p1, const vec3 p2, const vec3 p3)
 {
 	double u = 1 - t;
 	double tt = t * t;
@@ -3719,7 +3719,7 @@ vec3 pointcloud_cleaning_tool::bezier_point(double t, const vec3 p0, const vec3 
 }
 
 // Function to interpolate between two points
-vec3 pointcloud_cleaning_tool::interpolate(const vec3& p0, const vec3& p1, float t) {
+vec3 pointcloud_labeling_tool::interpolate(const vec3& p0, const vec3& p1, float t) {
 	return {
 		(1 - t) * p0.x() + t * p1.x(),
 		(1 - t) * p0.y() + t * p1.y(),
@@ -3728,7 +3728,7 @@ vec3 pointcloud_cleaning_tool::interpolate(const vec3& p0, const vec3& p1, float
 }
 
 // Generate Bezier surface points
-point_cloud pointcloud_cleaning_tool::generateBezierSurface(const vec3& p0, const vec3& p1, const vec3& p2, const vec3& p3, int numPoints) {
+point_cloud pointcloud_labeling_tool::generateBezierSurface(const vec3& p0, const vec3& p1, const vec3& p2, const vec3& p3, int numPoints) {
 	//std::vector<vec3> surfacePoints;
 	point_cloud surfacePTS;
 	for (int i = 0; i < numPoints; ++i) {
@@ -3747,7 +3747,7 @@ point_cloud pointcloud_cleaning_tool::generateBezierSurface(const vec3& p0, cons
 	return surfacePTS;
 }
 
-void pointcloud_cleaning_tool::load_labels_from(const std::string& fn) {
+void pointcloud_labeling_tool::load_labels_from(const std::string& fn) {
 	std::fstream file = std::fstream(fn, std::fstream::in);
 	if (!file.good()) {
 		std::cerr << "can't open file " << fn << std::endl;
@@ -3761,7 +3761,7 @@ void pointcloud_cleaning_tool::load_labels_from(const std::string& fn) {
 	set_palette_label_color_map(colors);
 }
 
-void pointcloud_cleaning_tool::on_load_palette_labels()
+void pointcloud_labeling_tool::on_load_palette_labels()
 {
 	std::string fn = cgv::gui::file_open_dialog("label mappings(*.palette;*.txt)", "*.palette;*.txt;");
 	if (fn.empty())
@@ -3769,7 +3769,7 @@ void pointcloud_cleaning_tool::on_load_palette_labels()
 	load_labels_from(fn);
 }
 ///
-void pointcloud_cleaning_tool::on_load_s3d_labels_cb()
+void pointcloud_labeling_tool::on_load_s3d_labels_cb()
 {
 	std::string fn = cgv::gui::file_open_dialog("label mappings(*.labels)", "*.labels;");
 	if (fn.empty())
@@ -3777,7 +3777,7 @@ void pointcloud_cleaning_tool::on_load_s3d_labels_cb()
 	load_label_nr_from(fn);
 }
 
-void pointcloud_cleaning_tool::on_store_s3d_labels_cb() {
+void pointcloud_labeling_tool::on_store_s3d_labels_cb() {
 	std::string fn = cgv::gui::file_save_dialog("label mappings(*.labels)", "*.labels;");
 	if (fn.empty())
 		return;
@@ -3785,7 +3785,7 @@ void pointcloud_cleaning_tool::on_store_s3d_labels_cb() {
 	std::cout << "wrote labels to " << fn << std::endl;
 }
 
-void pointcloud_cleaning_tool::on_generate_large_pc_cb()
+void pointcloud_labeling_tool::on_generate_large_pc_cb()
 {
 	point_cloud large_pc;
 	large_pc.create_colors();
@@ -3808,7 +3808,7 @@ void pointcloud_cleaning_tool::on_generate_large_pc_cb()
 	large_pc.write(fn);
 }
 ///
-void pointcloud_cleaning_tool::parallel_saving() {
+void pointcloud_labeling_tool::parallel_saving() {
 	std::string fn = cgv::gui::file_save_dialog("point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	if (fn.empty())
 		return;
@@ -3816,7 +3816,7 @@ void pointcloud_cleaning_tool::parallel_saving() {
 	std::cout << "saved!" << std::endl;
 }
 ///
-void pointcloud_cleaning_tool::on_save_point_cloud_cb()
+void pointcloud_labeling_tool::on_save_point_cloud_cb()
 {
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
@@ -3832,10 +3832,10 @@ void pointcloud_cleaning_tool::on_save_point_cloud_cb()
 		writing_thread->join();
 		delete writing_thread;
 	}
-	writing_thread = new std::thread(&pointcloud_cleaning_tool::parallel_saving, this);
+	writing_thread = new std::thread(&pointcloud_labeling_tool::parallel_saving, this);
 }
 ///
-void pointcloud_cleaning_tool::on_clear_point_cloud_cb()
+void pointcloud_labeling_tool::on_clear_point_cloud_cb()
 {
 	source_point_cloud.clear();
 	history_ptr->remove_all();
@@ -3846,17 +3846,17 @@ void pointcloud_cleaning_tool::on_clear_point_cloud_cb()
 	post_redraw();
 }
 ///
-void pointcloud_cleaning_tool::on_point_cloud_style_cb()
+void pointcloud_labeling_tool::on_point_cloud_style_cb()
 {
 	post_redraw();
 }
 ///
-void pointcloud_cleaning_tool::on_lod_mode_change()
+void pointcloud_labeling_tool::on_lod_mode_change()
 {
 	
 }
 ///
-void pointcloud_cleaning_tool::on_move_to_center() {
+void pointcloud_labeling_tool::on_move_to_center() {
 	dvec4 centroid = dvec4(0, 0, 0, 1);
 	for (int i = 0; i < source_point_cloud.get_nr_points(); ++i) {
 		const vec3& pnt = source_point_cloud.pnt(i);
@@ -3867,7 +3867,7 @@ void pointcloud_cleaning_tool::on_move_to_center() {
 	source_point_cloud.ref_point_cloud_position() = vec3(-centroid.x(),-centroid.y(),-centroid.z());
 }
 
-void pointcloud_cleaning_tool::on_toggle_show_labeled_points_only()
+void pointcloud_labeling_tool::on_toggle_show_labeled_points_only()
 {
 	if (visible_point_groups & 1) {
 		visible_point_groups = ~(~0u << 32) & (~0u << 16);
@@ -3878,14 +3878,14 @@ void pointcloud_cleaning_tool::on_toggle_show_labeled_points_only()
 	post_recreate_gui();
 }
 
-void pointcloud_cleaning_tool::on_clear_all_labels()
+void pointcloud_labeling_tool::on_clear_all_labels()
 {
 	if (point_server_ptr)
 		point_server_ptr->label_all_points(make_label(0, point_label_group::VISIBLE), (GLint)point_label_group::VISIBLE, 0);
 }
 
 
-void pointcloud_cleaning_tool::fetch_from_rgbd(bool x) {
+void pointcloud_labeling_tool::fetch_from_rgbd(bool x) {
 	if (x) {
 		auto* point_cloud_provider = point_cloud_providers.size() > 0 ? point_cloud_providers[0] : nullptr;
 		point_cloud_registration.set_provider(point_cloud_provider);
@@ -3895,7 +3895,7 @@ void pointcloud_cleaning_tool::fetch_from_rgbd(bool x) {
 	}
 }
 
-void pointcloud_cleaning_tool::on_rechunk() {
+void pointcloud_labeling_tool::on_rechunk() {
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
 	if (chunks_disabled) {
@@ -3913,7 +3913,7 @@ void pointcloud_cleaning_tool::on_rechunk() {
 	point_server_ptr->rechunk_point_cloud(preparation_settings.chunk_cube_size);
 }
 
-void pointcloud_cleaning_tool::on_make_infinite_chunk() {
+void pointcloud_labeling_tool::on_make_infinite_chunk() {
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
 	//effectivly disables chunks, thus disable optimizations that require chunks
@@ -3924,7 +3924,7 @@ void pointcloud_cleaning_tool::on_make_infinite_chunk() {
 	chunked_points.disable_chunks();
 }
 
-void pointcloud_cleaning_tool::load_label_names_from(const std::string& fn)
+void pointcloud_labeling_tool::load_label_names_from(const std::string& fn)
 {
 	std::fstream file = std::fstream(fn, std::fstream::in);
 	if (!file.good()) {
@@ -3935,7 +3935,7 @@ void pointcloud_cleaning_tool::load_label_names_from(const std::string& fn)
 	set_palette_label_text_map(name_mapping);
 }
 ///
-void pointcloud_cleaning_tool::load_label_nr_from(const std::string& fn)
+void pointcloud_labeling_tool::load_label_nr_from(const std::string& fn)
 {
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
@@ -3970,7 +3970,7 @@ void pointcloud_cleaning_tool::load_label_nr_from(const std::string& fn)
 	std::cout << "finish" << std::endl;
 }
 
-void pointcloud_cleaning_tool::store_label_nr_to(const std::string& fn) {
+void pointcloud_labeling_tool::store_label_nr_to(const std::string& fn) {
 	auto& chunked_points = point_server_ptr->ref_chunks();
 	
 	//synchronize point data
@@ -3989,9 +3989,9 @@ void pointcloud_cleaning_tool::store_label_nr_to(const std::string& fn) {
 }
 
 
-std::pair<std::vector<pointcloud_cleaning_tool::LODPoint>, std::vector<GLuint>> pointcloud_cleaning_tool::collect_points(cgv::render::context& ctx, int label_groups)
+std::pair<std::vector<pointcloud_labeling_tool::LODPoint>, std::vector<GLuint>> pointcloud_labeling_tool::collect_points(cgv::render::context& ctx, int label_groups)
 {
-	std::pair<std::vector<pointcloud_cleaning_tool::LODPoint>, std::vector<GLuint>> collected;
+	std::pair<std::vector<pointcloud_labeling_tool::LODPoint>, std::vector<GLuint>> collected;
 	
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
@@ -4050,7 +4050,7 @@ std::pair<std::vector<pointcloud_cleaning_tool::LODPoint>, std::vector<GLuint>> 
 	return collected;
 }
 
-void pointcloud_cleaning_tool::update_clod_parameters_label()
+void pointcloud_labeling_tool::update_clod_parameters_label()
 {
 	//update text label
 	std::array<char, 512> buff;
@@ -4062,7 +4062,7 @@ void pointcloud_cleaning_tool::update_clod_parameters_label()
 }
 
 ///
-void pointcloud_cleaning_tool::move_points_to_clipboard(std::vector<LODPoint>& points, std::vector<GLuint>& point_ids, GLint* point_labels) {
+void pointcloud_labeling_tool::move_points_to_clipboard(std::vector<LODPoint>& points, std::vector<GLuint>& point_ids, GLint* point_labels) {
 	// allocate space in clipboard
 	std::unique_ptr<point_cloud_record> tmp_pcr = std::make_unique<point_cloud_record>();
 	auto& serv = ref_point_cloud_server(*this->get_context());
@@ -4121,7 +4121,7 @@ void pointcloud_cleaning_tool::move_points_to_clipboard(std::vector<LODPoint>& p
 	}
 }
 
-void pointcloud_cleaning_tool::copy_points_to_clipboard(std::vector<LODPoint>& points, std::vector<GLuint>& point_ids, GLint* point_labels)
+void pointcloud_labeling_tool::copy_points_to_clipboard(std::vector<LODPoint>& points, std::vector<GLuint>& point_ids, GLint* point_labels)
 {
 	std::unique_ptr<pct::point_cloud_record> pcr_ptr = std::make_unique<point_cloud_record>();
 	std::unique_ptr<point_cloud> tmp = std::make_unique<point_cloud>();
@@ -4166,7 +4166,7 @@ void pointcloud_cleaning_tool::copy_points_to_clipboard(std::vector<LODPoint>& p
 	}
 }
 
-void pointcloud_cleaning_tool::on_copy_points() {
+void pointcloud_labeling_tool::on_copy_points() {
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
 	auto& collected = collect_points(*this->get_context(), (int)point_label_group::SELECTED_BIT);
@@ -4176,7 +4176,7 @@ void pointcloud_cleaning_tool::on_copy_points() {
 	move_points_to_clipboard(collected.first,collected.second, labels_ref.data<GLint>());
 }
 
-void pointcloud_cleaning_tool::on_load_clipboard_point_cloud()
+void pointcloud_labeling_tool::on_load_clipboard_point_cloud()
 {
 	point_cloud tmp;
 	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.lpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
@@ -4218,19 +4218,19 @@ void pointcloud_cleaning_tool::on_load_clipboard_point_cloud()
 }
 
 ///
-void pointcloud_cleaning_tool::rollback_last_operation(cgv::render::context& ctx) {
+void pointcloud_labeling_tool::rollback_last_operation(cgv::render::context& ctx) {
 	if (point_cloud_interaction_settings.enable_history)
 		history_ptr->rollback_last_operation(ctx);
 }
 ///
-void pointcloud_cleaning_tool::sync_data(int flags)
+void pointcloud_labeling_tool::sync_data(int flags)
 {
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
 	chunked_points.download_buffers();
 }
 
-void pointcloud_cleaning_tool::copy_chunks_to_point_cloud(point_cloud& dest, std::vector<unsigned>* id_translation_table) {
+void pointcloud_labeling_tool::copy_chunks_to_point_cloud(point_cloud& dest, std::vector<unsigned>* id_translation_table) {
 	int chunks_i = 0, pc_i = 0;
 	
 	auto& chunked_points = point_server_ptr->ref_chunks();
@@ -4271,7 +4271,7 @@ void pointcloud_cleaning_tool::copy_chunks_to_point_cloud(point_cloud& dest, std
 	}
 }
 
-void pointcloud_cleaning_tool::update_interaction_mode(const InteractionMode im) {
+void pointcloud_labeling_tool::update_interaction_mode(const InteractionMode im) {
 	interaction_mode = (int)im;
 	// set state for CONFIG mode
 	if (im == InteractionMode::CONFIG) {
@@ -4299,7 +4299,7 @@ void pointcloud_cleaning_tool::update_interaction_mode(const InteractionMode im)
 	update_controller_labels();
 }
 
-void pointcloud_cleaning_tool::rescale_point_cloud(float new_scale)
+void pointcloud_labeling_tool::rescale_point_cloud(float new_scale)
 {
 	float old_scale = point_server_ptr->ref_point_cloud_scale();
 	float old_clod_scale = source_point_cloud.ref_render_style().scale;
@@ -4313,7 +4313,7 @@ void pointcloud_cleaning_tool::rescale_point_cloud(float new_scale)
 	update_member(&source_point_cloud.ref_render_style().scale);
 }
 
-bool pointcloud_cleaning_tool::teleport_ray(const vec3& direction, const vec3& origin, const float ray_radius)
+bool pointcloud_labeling_tool::teleport_ray(const vec3& direction, const vec3& origin, const float ray_radius)
 {
 	float t;
 	vec3 p;
@@ -4341,7 +4341,7 @@ bool pointcloud_cleaning_tool::teleport_ray(const vec3& direction, const vec3& o
 	return false;
 }
 
-void pointcloud_cleaning_tool::swap_point_cloud(point_cloud_record& other) {
+void pointcloud_labeling_tool::swap_point_cloud(point_cloud_record& other) {
 	sync_data();
 	//swap name
 	std::swap(source_name, point_cloud_registration.ref_name());
@@ -4374,7 +4374,7 @@ void pointcloud_cleaning_tool::swap_point_cloud(point_cloud_record& other) {
 	}
 }
 
-void pointcloud_cleaning_tool::on_traject_hmd_cb()
+void pointcloud_labeling_tool::on_traject_hmd_cb()
 {
 	if (!tra_hmd)
 		tra_hmd = true;
@@ -4382,14 +4382,14 @@ void pointcloud_cleaning_tool::on_traject_hmd_cb()
 		tra_hmd = false;
 }
 
-bool pointcloud_cleaning_tool::hasEnding(std::string const& str, std::string const& ending) {
+bool pointcloud_labeling_tool::hasEnding(std::string const& str, std::string const& ending) {
 	if (str.length() >= ending.length()) {
 		return str.compare(str.length() - ending.length(), ending.length(), ending) == 0;
 	}
 	return false;
 }
 
-void pointcloud_cleaning_tool::on_save_hmd_tra_cb()
+void pointcloud_labeling_tool::on_save_hmd_tra_cb()
 {
 	const std::string file_ending = ".vrhmd";
 	std::string fn = cgv::gui::file_save_dialog("base file name", "hmd configurations(vrhmd):*.vrhmd");
@@ -4402,7 +4402,7 @@ void pointcloud_cleaning_tool::on_save_hmd_tra_cb()
 }
 
 /// generate a new drawing file name
-std::string pointcloud_cleaning_tool::get_new_tra_file_name()
+std::string pointcloud_labeling_tool::get_new_tra_file_name()
 {
 	int i = (int)draw_file_names.size() - 1;
 	std::string file_name;
@@ -4417,7 +4417,7 @@ std::string pointcloud_cleaning_tool::get_new_tra_file_name()
 	return file_name;
 }
 
-bool pointcloud_cleaning_tool::save_hmd_tra(const std::string& fn)
+bool pointcloud_labeling_tool::save_hmd_tra(const std::string& fn)
 {
 	std::stringstream data;
 
@@ -4453,7 +4453,7 @@ bool pointcloud_cleaning_tool::save_hmd_tra(const std::string& fn)
 	return true;
 }
 
-bool pointcloud_cleaning_tool::load_hmd_tra(const std::string fn) {
+bool pointcloud_labeling_tool::load_hmd_tra(const std::string fn) {
 	clear_hmd_tra();
 	std::string data;
 	if (!cgv::utils::file::read(fn, data)) {
@@ -4506,7 +4506,7 @@ bool pointcloud_cleaning_tool::load_hmd_tra(const std::string fn) {
 	return false;
 }
 
-void pointcloud_cleaning_tool::draw_hmd_tra(std::vector<vec3>& hmd_translations, std::vector<vec4>& hmd_colors) {
+void pointcloud_labeling_tool::draw_hmd_tra(std::vector<vec3>& hmd_translations, std::vector<vec4>& hmd_colors) {
 	vec4 color;
 	//add start and end point of each correspondence in world coordinates to points
 	for (int i = 0; i < trajectory_points.size(); ++i) {
@@ -4532,7 +4532,7 @@ void pointcloud_cleaning_tool::draw_hmd_tra(std::vector<vec3>& hmd_translations,
 	}
 }
 
-void pointcloud_cleaning_tool::clear_hmd_tra() {
+void pointcloud_labeling_tool::clear_hmd_tra() {
 	tra_las_points.clear();
 	tra_las_ori.clear();
 	trajectory_points.clear();
@@ -4540,7 +4540,7 @@ void pointcloud_cleaning_tool::clear_hmd_tra() {
 	trajectory_color.clear();
 }
 
-void pointcloud_cleaning_tool::restore_trajectory_file_list(const std::string& dir)
+void pointcloud_labeling_tool::restore_trajectory_file_list(const std::string& dir)
 {
 	void* hdl = cgv::utils::file::find_first(dir + "/*.vrhmd");
 	while (hdl) {
@@ -4551,7 +4551,7 @@ void pointcloud_cleaning_tool::restore_trajectory_file_list(const std::string& d
 	}
 }
 
-void pointcloud_cleaning_tool::read_depth_buffer() {
+void pointcloud_labeling_tool::read_depth_buffer() {
 	GLuint fbo_nml = -1;
 	glGenFramebuffers(1, &fbo_nml);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo_nml);
@@ -4576,45 +4576,45 @@ void pointcloud_cleaning_tool::read_depth_buffer() {
 
 }
 
-void pointcloud_cleaning_tool::create_gui()
+void pointcloud_labeling_tool::create_gui()
 {
 	//auto start_g = std::chrono::steady_clock::now();
 
 	add_decorator("Point cloud", "heading", "level=1");
-	connect_copy(add_button("load point cloud","tooltip='read a pointcloud from file'")->click, rebind(this, &pointcloud_cleaning_tool::on_load_point_cloud_cb));
+	connect_copy(add_button("load point cloud","tooltip='read a pointcloud from file'")->click, rebind(this, &pointcloud_labeling_tool::on_load_point_cloud_cb));
 
 	add_member_control(this, "old label format", file_contains_label_groups, "check",
 			"tooltip='Affects only loading. Previous versions of this application stored the point labels as they were in memory to the file. But newer versions remove temporary markings before storing, which leads to a different interpretation of the label attribute.'");
 	std::string mode_defs = "enums='random=2;octree=1'";
 	connect_copy(add_control("lod generator", (DummyEnum&)preparation_settings.lod_mode, "dropdown", mode_defs)->value_change,
-		rebind(this, &pointcloud_cleaning_tool::on_lod_mode_change));
+		rebind(this, &pointcloud_labeling_tool::on_lod_mode_change));
 
-	connect_copy(add_button("save point cloud")->click, rebind(this, &pointcloud_cleaning_tool::on_save_point_cloud_cb));
+	connect_copy(add_button("save point cloud")->click, rebind(this, &pointcloud_labeling_tool::on_save_point_cloud_cb));
 	connect_copy(add_button("clear point cloud", 
-		"tooltip='replaces the active pointcloud with an empty one'")->click, rebind(this, &pointcloud_cleaning_tool::on_clear_point_cloud_cb));
+		"tooltip='replaces the active pointcloud with an empty one'")->click, rebind(this, &pointcloud_labeling_tool::on_clear_point_cloud_cb));
 	add_member_control(this, "dedupe points on lod generation", preparation_settings.allow_point_deduplication, "check",
 		"tooltip='remove/merge points with almost the same coordinates when adding LoD'");
 	add_decorator("Labels", "heading", "level=2");
-	connect_copy(add_button("load s3d labels", "tooltip='read labels from a file'")->click, rebind(this, &pointcloud_cleaning_tool::on_load_s3d_labels_cb));
-	connect_copy(add_button("store s3d labels", "tooltip='write labels line wise as ASCII text to a file'")->click, rebind(this, &pointcloud_cleaning_tool::on_store_s3d_labels_cb));
-	connect_copy(add_button("load label palette", "tooltip='load different palette labels and colors'")->click, rebind(this, &pointcloud_cleaning_tool::on_load_palette_labels));
-	connect_copy(add_button("random lpc", "tooltip='create a random cube shaped point cloud'")->click, rebind(this, &pointcloud_cleaning_tool::on_generate_large_pc_cb));
+	connect_copy(add_button("load s3d labels", "tooltip='read labels from a file'")->click, rebind(this, &pointcloud_labeling_tool::on_load_s3d_labels_cb));
+	connect_copy(add_button("store s3d labels", "tooltip='write labels line wise as ASCII text to a file'")->click, rebind(this, &pointcloud_labeling_tool::on_store_s3d_labels_cb));
+	connect_copy(add_button("load label palette", "tooltip='load different palette labels and colors'")->click, rebind(this, &pointcloud_labeling_tool::on_load_palette_labels));
+	connect_copy(add_button("random lpc", "tooltip='create a random cube shaped point cloud'")->click, rebind(this, &pointcloud_labeling_tool::on_generate_large_pc_cb));
 
-	connect_copy(add_button("load_1")->click, rebind(this, &pointcloud_cleaning_tool::on_load_comparison_point_cloud_1_cb));
-	connect_copy(add_button("load_2")->click, rebind(this, &pointcloud_cleaning_tool::on_load_comparison_point_cloud_2_cb));
-	connect_copy(add_button("compare")->click, rebind(this, &pointcloud_cleaning_tool::on_load_comparison_point_cloud_cb));
+	connect_copy(add_button("load_1")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_1_cb));
+	connect_copy(add_button("load_2")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_2_cb));
+	connect_copy(add_button("compare")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_cb));
 
-	connect_copy(add_button("load_ori")->click, rebind(this, &pointcloud_cleaning_tool::on_load_ori_pc_cb));
-	connect_copy(add_button("load_pcs")->click, rebind(this, &pointcloud_cleaning_tool::on_load_anno_pcs_cb));
+	connect_copy(add_button("load_ori")->click, rebind(this, &pointcloud_labeling_tool::on_load_ori_pc_cb));
+	connect_copy(add_button("load_pcs")->click, rebind(this, &pointcloud_labeling_tool::on_load_anno_pcs_cb));
 
-	connect_copy(add_button("loadCAD")->click, rebind(this, &pointcloud_cleaning_tool::on_load_CAD_cb));
-	connect_copy(add_button("showmesh")->click, rebind(this, &pointcloud_cleaning_tool::draw_mesh));
+	connect_copy(add_button("loadCAD")->click, rebind(this, &pointcloud_labeling_tool::on_load_CAD_cb));
+	connect_copy(add_button("showmesh")->click, rebind(this, &pointcloud_labeling_tool::draw_mesh));
 	add_member_control(this, "adapt CLOD", adapt_clod, "check",
 		"tooltip='adapt the clod parameters to current point cloud and GPU'");
 	add_view("fps", frame_rate, "view");
 	
 	std::string toggle_show_labeled_points_only_txt = (visible_point_groups & 1) ? "show labeled point only" : "show all points";
-	connect_copy(add_button(toggle_show_labeled_points_only_txt)->click, rebind(this, &pointcloud_cleaning_tool::on_toggle_show_labeled_points_only));
+	connect_copy(add_button(toggle_show_labeled_points_only_txt)->click, rebind(this, &pointcloud_labeling_tool::on_toggle_show_labeled_points_only));
 	//show surrounding environment
 	add_decorator("Environment", "heading", "level=1");
 	add_member_control(this, "show environment", world.show_environment, "toggle");
@@ -4626,14 +4626,14 @@ void pointcloud_cleaning_tool::create_gui()
 	// show lod color and disable main view
 	add_decorator("Other", "heading", "level=2");
 	add_member_control(this, "disable_main_view", disable_main_view, "toggle");
-	connect_copy(add_button("colorize with height")->click, rebind(this, &pointcloud_cleaning_tool::colorize_with_height));
-	connect_copy(add_button("print point cloud info")->click, rebind(this, &pointcloud_cleaning_tool::print_point_cloud_info));
+	connect_copy(add_button("colorize with height")->click, rebind(this, &pointcloud_labeling_tool::colorize_with_height));
+	connect_copy(add_button("print point cloud info")->click, rebind(this, &pointcloud_labeling_tool::print_point_cloud_info));
 
 	if (begin_tree_node("trajectory of HMD", tra_hmd)) {
 		align("\a");
-		connect_copy(add_button("traject")->click, rebind(this, &pointcloud_cleaning_tool::on_traject_hmd_cb));
+		connect_copy(add_button("traject")->click, rebind(this, &pointcloud_labeling_tool::on_traject_hmd_cb));
 		add_member_control(this, "draw_file_path", draw_file_path, "directory");
-		connect_copy(add_button("save hmd")->click, rebind(this, &pointcloud_cleaning_tool::on_save_hmd_tra_cb));
+		connect_copy(add_button("save hmd")->click, rebind(this, &pointcloud_labeling_tool::on_save_hmd_tra_cb));
 		align("\b");
 	}
 
@@ -4649,9 +4649,9 @@ void pointcloud_cleaning_tool::create_gui()
 			add_view("reduce gpu[ms]", avg_reduce_time_gpu_view, "view","tooltip='Average time spend by the gpu running the point reduction'");
 			add_view("draw[ms]", avg_draw_time_view, "view","tooltip='Average time needed by the gpu to render one frame'");
 
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_cleaning_tool::on_set_reduce_cpu_time_watch_file));
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_cleaning_tool::on_set_reduce_gpu_time_watch_file));
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_cleaning_tool::on_set_draw_time_watch_file));
+			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_reduce_cpu_time_watch_file));
+			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_reduce_gpu_time_watch_file));
+			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_draw_time_watch_file));
 
 			add_view("reduce cpu time", reduce_cpu_time_watch_file_name, "view");
 			add_view("reduce log file", reduce_time_watch_file_name, "view");
@@ -4664,18 +4664,18 @@ void pointcloud_cleaning_tool::create_gui()
 		add_decorator("Labeling on CPU Side", "heading", "level=3");
 			add_view("average[ms]", avg_labeling_time_cpu, "view");
 			add_view("last[ms]", last_labeling_time_cpu, "view");
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_cleaning_tool::on_set_labeling_cpu_time_watch_file));
+			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_labeling_cpu_time_watch_file));
 			add_view(" CPU log file", labeling_cpu_watch_file_name, "view");
 			add_member_control(this, "enable", log_labeling_cpu_time, "toggle");
 
 		add_decorator("Labeling Shader / GPU", "heading", "level=3");
 			add_view("average[ms]", avg_labeling_time_gpu, "view");
 			add_view("last[ms]", last_labeling_time_gpu, "view");
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_cleaning_tool::on_set_labeling_time_watch_file));
+			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_labeling_time_watch_file));
 			add_view(" GPU log file", labeling_time_watch_file_name, "view");
 			add_member_control(this, "enable", log_labeling_gpu_time, "toggle");
 		add_decorator("FPS", "heading", "level=3");
-		connect_copy(add_button("set FPS log file")->click, rebind(this, &pointcloud_cleaning_tool::on_set_fps_watch_file));
+		connect_copy(add_button("set FPS log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_fps_watch_file));
 		add_view(" FPS", fps_watch, "view");
 		add_view(" FPS log file", fps_watch_file_name, "view");
 		add_member_control(this, "enable", log_fps, "toggle");
@@ -4729,7 +4729,7 @@ void pointcloud_cleaning_tool::create_gui()
 
 	if (begin_tree_node("Auto Point Cloud Positioning", gui_scaling, gui_scaling)) {
 		add_member_control(this, "auto-scale pointcloud", pointcloud_fit_table, "toggle");
-		connect_copy(add_button("put on table")->click, rebind(this, &pointcloud_cleaning_tool::on_point_cloud_fit_table));
+		connect_copy(add_button("put on table")->click, rebind(this, &pointcloud_labeling_tool::on_point_cloud_fit_table));
 		//connect_copy(add_button("move point cloud to center")->click, rebind(this, &pointcloud_cleaning_tool::on_move_to_center));
 	}
 
@@ -4739,9 +4739,9 @@ void pointcloud_cleaning_tool::create_gui()
 		add_member_control(this, "chunks in one direction", preparation_settings.auto_chunk_max_num_chunks, "value_slider", "min=1;max=1000;log=false;ticks=true");
 		add_member_control(this, "show chunk bounding boxes", draw_chunk_bounding_boxes, "check");
 		add_member_control(this, "chunk cube size", preparation_settings.chunk_cube_size, "value_slider", "min=0.1;max=5.0;log=false;ticks=true");
-		connect_copy(add_button("rechunk")->click, rebind(this, &pointcloud_cleaning_tool::on_rechunk));
+		connect_copy(add_button("rechunk")->click, rebind(this, &pointcloud_labeling_tool::on_rechunk));
 		connect_copy(add_button("disable chunks",
-			"tooltip='merge all points into an infinite chunk, this automatically enables skip frustum culling under the render settings'")->click, rebind(this, &pointcloud_cleaning_tool::on_make_infinite_chunk));
+			"tooltip='merge all points into an infinite chunk, this automatically enables skip frustum culling under the render settings'")->click, rebind(this, &pointcloud_labeling_tool::on_make_infinite_chunk));
 		
 		if (begin_tree_node("cone style", cone_style, false)) {
 			align("\a");
@@ -4756,8 +4756,8 @@ void pointcloud_cleaning_tool::create_gui()
 		align("\a");
 		add_member_control(this, "use chunks", point_cloud_interaction_settings.use_chunks, "check",
 			"tooltip='This only affects tools! If enabled tools will use the chunk accelleration structure. For rendering without chunks go to \"Point Cloud Chunking\" and make a monolithic chunk'");
-		connect_copy(add_button("clear all labels")->click, rebind(this, &pointcloud_cleaning_tool::on_clear_all_labels));
-		connect_copy(add_button("rollback one step")->click, rebind(this, &pointcloud_cleaning_tool::on_rollback_cb));
+		connect_copy(add_button("clear all labels")->click, rebind(this, &pointcloud_labeling_tool::on_clear_all_labels));
+		connect_copy(add_button("rollback one step")->click, rebind(this, &pointcloud_labeling_tool::on_rollback_cb));
 		add_member_control(this, "enable label history", point_cloud_interaction_settings.enable_history, "check");
 		
 		if (begin_tree_node("Palette", palette, false)) {
@@ -4791,15 +4791,15 @@ void pointcloud_cleaning_tool::create_gui()
 	}
 
 	if (begin_tree_node("Clipboard", clipboard_ptr)) {
-		connect_copy(add_button("add pointcloud")->click, rebind(this, &pointcloud_cleaning_tool::on_add_point_cloud_to_clipboard));
-		connect_copy(add_button("clipboard pointcloud")->click, rebind(this, &pointcloud_cleaning_tool::on_load_clipboard_point_cloud));
+		connect_copy(add_button("add pointcloud")->click, rebind(this, &pointcloud_labeling_tool::on_add_point_cloud_to_clipboard));
+		connect_copy(add_button("clipboard pointcloud")->click, rebind(this, &pointcloud_labeling_tool::on_load_clipboard_point_cloud));
 	}
 
 	if (begin_tree_node("Tests", gui_tests)) {
-		connect_copy(add_button("test moving ponits")->click, rebind(this, &pointcloud_cleaning_tool::test_moving_points));
-		connect_copy(add_button("registration tool point cloud")->click, rebind(this, &pointcloud_cleaning_tool::on_registration_tool_load_point_cloud));
-		connect_copy(add_button("copy selected points")->click, rebind(this, &pointcloud_cleaning_tool::on_copy_points));
-		connect_copy(add_button("fill clipboard")->click, rebind(this, &pointcloud_cleaning_tool::test_fill_clipboard));
+		connect_copy(add_button("test moving ponits")->click, rebind(this, &pointcloud_labeling_tool::test_moving_points));
+		connect_copy(add_button("registration tool point cloud")->click, rebind(this, &pointcloud_labeling_tool::on_registration_tool_load_point_cloud));
+		connect_copy(add_button("copy selected points")->click, rebind(this, &pointcloud_labeling_tool::on_copy_points));
+		connect_copy(add_button("fill clipboard")->click, rebind(this, &pointcloud_labeling_tool::test_fill_clipboard));
 		std::stringstream ss;
 		ss << "min=0;max=" << InteractionMode::NUM_OF_INTERACTIONS - 1 << ";log=false;ticks=true";
 		add_member_control(this, "interaction mode", interaction_mode, "value_slider", ss.str());
@@ -4811,20 +4811,20 @@ void pointcloud_cleaning_tool::create_gui()
 
 		add_member_control(this,"operation", (DummyEnum&)picked_label_operation, "dropdown", mode_defs);
 
-		connect_copy(add_button("update gui")->click, rebind(this, &pointcloud_cleaning_tool::on_update_gui));
+		connect_copy(add_button("update gui")->click, rebind(this, &pointcloud_labeling_tool::on_update_gui));
 		
-		connect_copy(add_button("test labeling of points")->click, rebind(this, &pointcloud_cleaning_tool::test_labeling_of_points));
+		connect_copy(add_button("test labeling of points")->click, rebind(this, &pointcloud_labeling_tool::test_labeling_of_points));
 		add_member_control(this, "radius (test)", radius_for_test_labeling, "value_slider", "min=0.1;max=100;log=false;ticks=true");
 		
 		if (begin_tree_node("Auto Pilot", true)) {
-			connect_copy(add_button("load path", "tooltip='Load a txt file containing way points.\n expected point format: x,y,z without spaces per line'")->click, rebind(this, &pointcloud_cleaning_tool::on_auto_pilot_load_path));
+			connect_copy(add_button("load path", "tooltip='Load a txt file containing way points.\n expected point format: x,y,z without spaces per line'")->click, rebind(this, &pointcloud_labeling_tool::on_auto_pilot_load_path));
 			add_member_control(this, "controller tip as reference", navigation_is_controller_path, "check", "tooltip='use a controller position instead of the hmd position as reference'");
 			add_member_control(this, "controller", navigation_selected_controller, "value", "tooltip='controller to use as reference if is controller path is ticked'");
 			add_gui("Auto Pilot", automated_navigation);
 			add_member_control(this, "enable", use_autopilot, "toggle");
 			add_member_control(this, "start_l", start_l, "toggle");
 			connect_copy(add_button("disable_chunks",
-				"tooltip='merge all points into an infinite chunk, this automatically enables skip frustum culling under the render settings'")->click, rebind(this, &pointcloud_cleaning_tool::on_make_infinite_chunk));
+				"tooltip='merge all points into an infinite chunk, this automatically enables skip frustum culling under the render settings'")->click, rebind(this, &pointcloud_labeling_tool::on_make_infinite_chunk));
 		}
 
 		if (begin_tree_node("Point Cloud", true, false, "level=2")) {
@@ -4845,4 +4845,4 @@ void pointcloud_cleaning_tool::create_gui()
 #include "lib_begin.h"
 #include <cgv/base/register.h>
 
-cgv::base::object_registration<pointcloud_cleaning_tool> pointcloud_cleaning_tool_reg("");
+cgv::base::object_registration<pointcloud_labeling_tool> pointcloud_cleaning_tool_reg("");

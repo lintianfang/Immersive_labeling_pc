@@ -118,7 +118,7 @@ inline vrui::PaletteObject to_PaletteObject(const selection_shape ss) {
 }
 
 
-class pointcloud_cleaning_tool;
+class pointcloud_labeling_tool;
 
 
 enum point_attributes {
@@ -136,7 +136,7 @@ enum pallete_tool {
 	NUM_PALLETE_TOOLS
 };
 
-class pointcloud_cleaning_tool :
+class pointcloud_labeling_tool :
 	public cgv::base::node,
 	public cgv::render::drawable,
 	public cgv::gui::event_handler,
@@ -155,9 +155,9 @@ public:
 	//type alias for point format used by the clod renderer
 	using LODPoint = cgv::render::clod_point_renderer::Point;
 
-	pointcloud_cleaning_tool();
+	pointcloud_labeling_tool();
 
-	~pointcloud_cleaning_tool();
+	~pointcloud_labeling_tool();
 
 	/// overload to return the type name of this object. By default the type interface is queried over get_type.
 	std::string get_type_name() const { return "pointcloud_cleaning_tool"; }
