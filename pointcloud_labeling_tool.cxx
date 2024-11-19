@@ -1,5 +1,5 @@
 #include <cgv/base/base.h>
-#include "pointcloud_cleaning_tool.h"
+#include "pointcloud_labeling_tool.h"
 #include <cgv_gl/gl/gl.h>
 #include <cgv/gui/file_dialog.h>
 #include <cgv/gui/trigger.h>
