@@ -31,10 +31,10 @@ How to use cgv framework:
 6. open the batch file define_platform.bat to set the win32 or 64
 7. check the configuration in the batch file show_system_variables.bat
 
-8. open the folder "plugins" to find the "vr_test", open the file
-9. in the folder "Immersive_labeling_pc", drag the pc_cleaning_tool.pj to ..\bin\geberate_makefiles.bat
+8. git clone "Immersive_labeling_pc" from current repo: https://github.com/lintianfang/Immersive_labeling_pc
+9. in the folder "Immersive_labeling_pc", drag the pc_labeling_tool.pj to ..\bin\geberate_makefiles.bat
 10. waiting for generateing makefiles, and then press any key to continue, the project should be open in vs automatically.
-11. please choose "Release DLL" before you build.
+11. please choose "Release DLL" or "Debug DLL" before you build.
 12. press f7 to build
 13. press Ctrl+f5 to run
 
