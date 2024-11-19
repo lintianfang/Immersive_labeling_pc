@@ -92,7 +92,7 @@ namespace {
 			<< "Menu Button: swap point cloud\n";
 		return text.str();
 	}
-	std::array<bool, NUM_OF_INTERACTIONS> interaction_mode_help_text_default_visibility = {false,false,true,false,false,true};
+	std::array<bool, NUM_OF_INTERACTIONS> interaction_mode_help_text_default_visibility = {false,true,true};
 
 	void tesselate_ray(const int edges, const float length, const float radius, std::vector<cgv::math::fvec<float, 3>>& container) {
 
@@ -698,50 +698,7 @@ bool pointcloud_cleaning_tool::init(cgv::render::context& ctx)
 			tool_help_label_offset, tool_label_ori, tool_help_label_coordinate_system, LA_LEFT, tool_label_scale);
 		text_labels.hide_label(li);
 	}
-	{
-		tool_help_label_id[InteractionMode::PUSHING][1] =
-			text_labels.add_label(
-				"[Pushing]\n"
-				"Trigger Controller Right: push points\n"
-				"Trackpad Controller Right:\n"
-				" up down   : move\n"
-				" left right: change shape\n",
-				tool_label_color);
-		auto li = tool_help_label_id[InteractionMode::PUSHING][1];
-		text_labels.place_label(li,
-			tool_help_label_offset, tool_label_ori, tool_help_label_coordinate_system, LA_LEFT, tool_label_scale);
-		text_labels.hide_label(li);
-	}
-	controller_label_variants[1][InteractionMode::PUSHING][CLP_TRACKPAD_RIGHT].push_back(
-		controller_labels[1].add_variant(CLP_TRACKPAD_RIGHT, "next shape", controller_label_color));
-	controller_label_variants[1][InteractionMode::PUSHING][CLP_TRACKPAD_LEFT].push_back(
-		controller_labels[1].add_variant(CLP_TRACKPAD_LEFT, "prev. shape", controller_label_color));
 
-	{
-		tool_help_label_id[InteractionMode::RGBD_INPUT][1] =
-			text_labels.add_label(
-				rgbd_input_help_text(rgbd_mode_tool, point_cloud_registration),
-				tool_label_color);
-			
-		auto li = tool_help_label_id[InteractionMode::RGBD_INPUT][1];
-		text_labels.place_label(li,
-			tool_help_label_offset, tool_label_ori, tool_help_label_coordinate_system, LA_LEFT, tool_label_scale);
-		text_labels.hide_label(li);
-	}
-	{
-		tool_help_label_id[InteractionMode::HOLE_FILL][1] =
-			text_labels.add_label(
-				"[HOLE_FILL]\n"
-				"Trigger Controller Right: Add control points\n"
-				"Trackpad Controller Right:\n"
-				" up down   : move\n"
-				" left right: change shape\n",
-				tool_label_color);
-		auto li = tool_help_label_id[InteractionMode::HOLE_FILL][1];
-		text_labels.place_label(li,
-			tool_help_label_offset, tool_label_ori, tool_help_label_coordinate_system, LA_LEFT, tool_label_scale);
-		text_labels.hide_label(li);
-	}
 	{ // point spacing tool
 		spacing_tool_template_str =
 			"Hold the sphere halfways into a surface and\n"
@@ -825,9 +782,6 @@ void pointcloud_cleaning_tool::init_frame(cgv::render::context& ctx)
 
 	if (interaction_mode == LABELING)
 		palette.init_frame(ctx);
-	else if (interaction_mode == InteractionMode::RGBD_INPUT) {
-		rgbd_input_palette.init_frame(ctx);
-	}
 
 	// update visibility of visibility changing labels
 	
@@ -1573,48 +1527,6 @@ void pointcloud_cleaning_tool::draw(cgv::render::context & ctx)
 
 		break;
 	}
-	case InteractionMode::PUSHING: {
-		static const rgba color = rgba(0.4, 0.4, 0.4, 0.8);
-		switch (point_pushing_shape) {
-		case SS_SPHERE:
-			render_palette_sphere_on_rhand(ctx, color);
-			break;
-		case SS_CUBOID:
-			render_palette_cube_on_rhand(ctx, color);
-			break;
-		}
-		break;
-	}
-	case InteractionMode::RGBD_INPUT: {
-		point_cloud_registration.copy_point_style(source_point_cloud.ref_render_style());
-		point_cloud_registration.draw(ctx);
-
-		rgbd_input_palette.render_palette(ctx, controller_poses[palette_hand]);
-		break;
-	}
-	case InteractionMode::HOLE_FILL: {
-			if (ctrl_pts.size() > 0) {
-				auto& sr = ref_sphere_renderer(ctx);
-				//std::vector<rgb8> colors(highlighted_points.size(), rgb8(255, 10, 255));
-				std::vector<float> radii(ctrl_pts.size(), teleport_ray_radius);
-				sr.set_position_array(ctx, ctrl_pts);
-				sr.set_color_array(ctx, ctrl_pts_clrs);
-				sr.set_radius_array(ctx, radii);
-				sr.render(ctx, 0, ctrl_pts.size());
-			}
-			if (show_surface_pts) {
-				if (surface_pts.get_nr_points() > 0) {
-					auto& sr = ref_sphere_renderer(ctx);
-					//std::vector<rgb8> colors(highlighted_points.size(), rgb8(255, 10, 255));
-					std::vector<float> radii(surface_pts.get_nr_points(), 0.005);
-					sr.set_position_array(ctx, &surface_pts.pnt(0), surface_pts.get_nr_points());
-					sr.set_color_array(ctx, &surface_pts.clr(0), surface_pts.get_nr_points());
-					sr.set_radius_array(ctx, radii);
-					sr.render(ctx, 0, surface_pts.get_nr_points());
-				}
-			}
-			break;
-		}
 	}
 
 	// draw trajectory of hmd
@@ -2104,17 +2016,8 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 
 				float scale_delta = (dist_controllers - old_dist_controllers) * movement_to_scale_factor;
 
-				// scale pointcloud from RGBD_INPUT tool
-				if (interaction_mode == InteractionMode::RGBD_INPUT) {
-					mat4 model_transform = point_cloud_registration.model_matrix();
-					point_cloud_registration.ref_scale() = point_cloud_registration.ref_scale() * std::exp(scale_delta);
-					mat4 new_model_transform = point_cloud_registration.model_matrix();
-					vec4 center = (0.5f * (controller_poses[0].col(3) + controller_poses[1].col(3))).lift();
-					vec4 center_in_model_cs = inv(model_transform) * center;
-					vec4 new_center = new_model_transform * center_in_model_cs;
-					point_cloud_registration.ref_translation() += (vec3)(center - new_center);
-				}
-				else { //scale source_pc
+				
+				{ //scale source_pc
 					float new_scale = point_server_ptr->ref_point_cloud_scale() * std::exp(scale_delta);
 					// build model_transform
 					mat4 model_transform = cgv::math::translate4(point_server_ptr->ref_point_cloud_position())
@@ -2147,22 +2050,7 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 				quat from = quat(mat3(3, 3, vrpe.get_last_pose_matrix().begin()));
 				quat delta_rotation = to * from.conj(); //delta_rotation = to*inv(from), conjugate of rotation quaternion == inverse of rotation quaternion
 				// move pointcloud from RGBD_INPUT tool
-				if (interaction_mode == InteractionMode::RGBD_INPUT) {
-					mat4 linear_transform = cgv::math::translate4(controller_poses[1].col(3) + movement) * delta_rotation.get_homogeneous_matrix() * cgv::math::translate4(-controller_poses[1].col(3)) * point_cloud_registration.model_matrix();
-
-					mat3 rotation;
-					for (int j = 0; j < 3; ++j) {
-						for (int i = 0; i < 3; ++i) {
-							rotation(i, j) = linear_transform(i, j);
-						}
-						rotation(j, j) /= point_cloud_registration.ref_scale();
-					}
-					quat q_rotation = quat(rotation);
-					vec4 point_cloud_translation = linear_transform.col(3);
-					point_cloud_registration.ref_rotation() = q_rotation;
-					point_cloud_registration.ref_translation() = point_cloud_translation;
-				}
-				else { // move source_pc
+				{ // move source_pc
 					mat4 concat_mat = point_server_ptr->get_point_cloud_model_transform();
 
 					mat4 linear_transform = cgv::math::translate4(controller_poses[1].col(3) + movement) * delta_rotation.get_homogeneous_matrix() * cgv::math::translate4(-controller_poses[1].col(3)) * concat_mat;
@@ -2254,13 +2142,6 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 				}
 
 			}
-			else if ((InteractionMode)interaction_mode == InteractionMode::RGBD_INPUT) {
-				// check for picked object, calls function given by rgbd_input_palette.set_function(f) if something was picked
-				vec3 picking_position_rhand = cgv::math::pose_position(controller_poses[point_selection_hand]) + curr_offset_rhand;
-				float dist;
-				// check for picked object
-				int nearest_palette_idx = rgbd_input_palette.trigger_object(picking_position_rhand, controller_poses[palette_hand], dist);
-			}
 			//update shapes for rendering
 			{
 				//PLANE
@@ -2342,10 +2223,6 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 							}
 						}
 					}
-					else if ((InteractionMode)interaction_mode == InteractionMode::PUSHING) {
-						cgv::render::context& ctx = *get_context();
-						push_points(ctx, point_pushing_shape);
-					}
 					else if ((InteractionMode)interaction_mode == InteractionMode::TELEPORT) {
 						static constexpr int cid = 1;
 						//draw teleport destination
@@ -2406,8 +2283,6 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 				const vr::vr_kit_state* state = vr_view_ptr->get_current_vr_state();
 				if (state) {
 					if ((interaction_mode == (int)InteractionMode::LABELING) ||
-						(interaction_mode == (int)InteractionMode::PUSHING) ||
-						(interaction_mode == (int)InteractionMode::RGBD_INPUT) ||
 						(interaction_mode == (int)InteractionMode::TELEPORT)) {
 						//first controller allows scaling
 						is_scaling = state->controller[0].button_flags & vr::VRF_GRIP;
@@ -2478,41 +2353,6 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 						on_point_cloud_fit_table();
 						vr_view_ptr->set_tracking_origin(vec3(0.f, 0.f, 0.f));
 					}
-					else if ((InteractionMode)interaction_mode == InteractionMode::RGBD_INPUT) {
-						//swap active point cloud with the selected in the tool
-						if (!point_cloud_registration.registration_thread_is_busy()) {
-							point_cloud_record* r_ptr = point_cloud_registration.get_point_cloud_record();
-							// fix transform
-							point_cloud* pcr_pc_ptr = point_cloud_registration.get_point_cloud();
-							if (r_ptr && pcr_pc_ptr) {
-								// copy pose to pointcloud object (point_cloud_registration_tool is using it's own fields)
-								pcr_pc_ptr->ref_point_cloud_scale() = point_cloud_registration.ref_scale();
-								pcr_pc_ptr->ref_point_cloud_rotation() = cgv::math::rad2deg(to_euler_angels(point_cloud_registration.ref_rotation()));
-								pcr_pc_ptr->ref_point_cloud_position() = vec3(point_cloud_registration.ref_translation());
-								// swap
-								this->swap_point_cloud(*r_ptr);
-
-								// copy pose to point_cloud_registration_tool
-								r_ptr->scale = pcr_pc_ptr->ref_point_cloud_scale();
-								r_ptr->rotation = euler_angels_to_quat(deg2rad(pcr_pc_ptr->ref_point_cloud_rotation()));
-								r_ptr->translation = pcr_pc_ptr->ref_point_cloud_position();
-								// update text
-								text_labels.update_label_text(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1], rgbd_input_help_text(rgbd_mode_tool, point_cloud_registration));
-								text_labels.place_label(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1],
-									right_tool_label_offset, tool_label_ori, CS_RIGHT_CONTROLLER, LA_LEFT, tool_label_scale);
-							}
-						}
-					}
-					else if ((InteractionMode)interaction_mode == InteractionMode::HOLE_FILL){
-						if (surface_pts.get_nr_points() > 0)
-						{
-							// paste pointcloud and disengage paste mode
-							auto model_mat = cgv::mat4(1.0);
-							point_server_ptr->fuse_point_cloud(surface_pts, model_mat, true);
-							//point_editing_tool = pallete_tool::PT_BRUSH;
-							//update_controller_labels();
-						}
-					}
 				}
 				break;
 			case vr::VR_DPAD_LEFT:
@@ -2573,56 +2413,11 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 						//palette_element_shapes[picked_sphere_index] = point_selection_shape != selection_shape::SS_NONE ? point_selection_shape : selection_shape::SS_SPHERE;
 						//update_palette();
 					}
-					else if ((InteractionMode)interaction_mode == InteractionMode::PUSHING) {
-						do {
-							point_pushing_shape = (selection_shape)((point_pushing_shape + trackpad_direction) % selection_shape::NUM_OF_SHAPES);
-							if (point_pushing_shape < 0)
-								point_pushing_shape = (selection_shape)(point_pushing_shape + selection_shape::NUM_OF_SHAPES);
-						} while (pushing_shape_blacklist.find(point_pushing_shape) != pushing_shape_blacklist.end());
-					}
-					else if ((InteractionMode)interaction_mode == InteractionMode::RGBD_INPUT) {
-						auto active_ix = point_cloud_registration.get_index();
-
-						if (active_ix == point_cloud_registration.live_update_slot) {
-							if (trackpad_direction == 1) { // right press stores current capture
-								point_cloud_registration.store();
-								//switch to new pointcloud but keep pose from prevoius
-								auto rotation = point_cloud_registration.ref_rotation();
-								auto translation = point_cloud_registration.ref_translation();
-								auto scale = point_cloud_registration.ref_scale();
-								point_cloud_registration.ref_rotation() = rotation;
-								point_cloud_registration.ref_translation() = translation;
-								point_cloud_registration.ref_scale() = scale;
-							}
-						}
-						else if (active_ix == point_cloud_registration.registration_slot) {
-							if (trackpad_direction != 0) { // left or right press switches back to capture
-								point_cloud_registration.set_index(point_cloud_registration.live_update_slot);
-							}
-						}
-
-						//text_labels.update_label_text(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1], rgbd_input_help_text(rgbd_mode_tool, point_cloud_registration));
-						//text_labels.place_label(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1],
-						//	right_tool_label_offset, tool_label_ori, CS_RIGHT_CONTROLLER, LA_LEFT, tool_label_scale);
-						
-					}
-					else if ((InteractionMode)interaction_mode == InteractionMode::HOLE_FILL) {
-						surface_pts = generateBezierSurface(ctrl_pts.at(0), ctrl_pts.at(1), ctrl_pts.at(2), ctrl_pts.at(3), 20);
-						point_server_ptr->compute_lod_adding_points(surface_pts, preparation_settings);
-						show_surface_pts = !show_surface_pts;
-					}
+					
 				}
 				else if (vrke.get_controller_index() == 0) {
 					//left hand trackpad: left-right to change the RGBD mode: PULL, FUSE, ICP
-					if ((InteractionMode)interaction_mode == InteractionMode::RGBD_INPUT) {
-						rgbd_mode_tool = ((rgbd_mode_tool + trackpad_direction) % (int)RGBDInputModeTools::NUM_RGBD_TOOLS);
-						if (rgbd_mode_tool < 0)
-							rgbd_mode_tool = rgbd_mode_tool + (int)RGBDInputModeTools::NUM_RGBD_TOOLS;
-						text_labels.update_label_text(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1], rgbd_input_help_text(rgbd_mode_tool, point_cloud_registration));
-						text_labels.place_label(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1],
-							right_tool_label_offset, tool_label_ori, CS_RIGHT_CONTROLLER, LA_LEFT, tool_label_scale);
-					}
-					else if ((InteractionMode)interaction_mode == InteractionMode::LABELING) {
+					if ((InteractionMode)interaction_mode == InteractionMode::LABELING) {
 						//copy selection to clipboard
 						if (trackpad_direction < 0) {
 							auto& collected = collect_points(*this->get_context(), (int)point_label_group::SELECTED_BIT);
@@ -2726,9 +2521,6 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 				if ((InteractionMode)interaction_mode == InteractionMode::LABELING){ 
 					shape = point_selection_shape;
 				}
-				else if ((InteractionMode)interaction_mode == InteractionMode::PUSHING) {
-					shape = point_pushing_shape;
-				}
 				if (factor != 0) {
 					switch (shape) {
 					case SS_SPHERE:
@@ -2822,13 +2614,6 @@ bool pointcloud_cleaning_tool::handle(cgv::gui::event & e)
 		else if (last_throttle_state[ci] >= throttle_threshold && v < throttle_threshold) {
 			on_throttle_threshold(ci, false);
 		}
-		if ((InteractionMode)interaction_mode == InteractionMode::HOLE_FILL) {
-			if (ci == 1 && v == 1.0) {
-				if(ctrl_pts.size() < 4)
-				ctrl_pts.push_back(cgv::math::pose_position(controller_poses[ci]) + shape_offset(0.f));
-				ctrl_pts_clrs.push_back(rgb(1.0, 0.0, 0.0));
-			}
-		}
 		last_throttle_state[te.get_controller_index()] = v;
 		return true;
 	}
@@ -2840,144 +2625,7 @@ void pointcloud_cleaning_tool::on_throttle_threshold(const int ci, const bool lo
 
 	auto& chunked_points = point_server_ptr->ref_chunks();
 
-	if ((InteractionMode)interaction_mode == InteractionMode::RGBD_INPUT) {
-		if (low_high) {
-			switch ((RGBDInputModeTools)rgbd_mode_tool) {
-			case RGBDInputModeTools::Pull:
-				point_cloud_registration.move_in_front(controller_poses[ci]);
-				break;
-			case RGBDInputModeTools::Fuse:
-			{
-				static constexpr int default_label = 0; //assigned to new points
-
-				auto* pc_ptr = point_cloud_registration.get_point_cloud();
-				if (pc_ptr) {
-					auto& pc = *pc_ptr;
-					//merge pointclouds
-					size_t nr_points = pc.get_nr_points();
-					mat4 reg_model_matrix = point_cloud_registration.model_matrix();
-					mat4 transform = inv(concat_mat) * reg_model_matrix;
-
-					chunked_points.download_buffers();
-
-					//create attributes
-					std::vector<generic_point_attribute> attributes;
-					std::vector<int> attribute_ids;
-					int attr_normals = chunked_points.find_attribute_id_by_name("normal");
-					int attr_labels = chunked_points.find_attribute_id_by_name("label");
-					assert(attr_labels != -1);
-					//labels
-					attribute_ids.emplace_back(attr_labels);
-					attributes.emplace_back(sizeof(GLint));
-					std::vector<GLuint> new_labels(pc.get_nr_points(), make_label(default_label, point_label_group::VISIBLE));
-					attributes[0].load(new_labels.data(), new_labels.size());
-					//normals
-					if (attr_normals != -1) {
-						attribute_ids.emplace_back(attr_normals);
-						attributes.emplace_back(sizeof(vec3));
-						if (!pc.has_normals())
-							pc.create_normals();
-						//copy from point cloud
-						attributes.back().load(&pc.nml(0), pc.get_nr_points());
-					}
-					// add points
-					{
-						memory_mapped_history mapped_history = history_ptr->make_mapping();
-						for (int i = 0; i < nr_points; ++i) {
-							LODPoint pnt;
-							pnt.position() = transform * pc.pnt(i).lift();
-							pnt.color() = pc.clr(i);
-							label_operation op;
-							op.index = chunked_points.add_point(pnt, attributes.data(), attribute_ids.data(), attributes.size(), i);
-							op.label = make_label(0, point_label_group::DELETED);
-							mapped_history.add_label_operation(op);
-						}
-					}
-					history_ptr->add_rollback_operation();
-					//find modified chunks
-					for (auto& iv_pair : chunked_points) {
-						auto& ch = iv_pair.second;
-						if (ch->host_data_changed()) {
-							//extend points
-							std::vector<indexed_point> pnts;
-							pnts.resize(ch->size());
-							for (int i = 0; i < ch->size(); ++i) {
-								indexed_point p;
-								auto& cp = ch->point_at(i);
-								p.position() = cp.position();
-								p.color() = cp.color();
-								p.level() = 0;
-								p.index = ch->id_at(i);
-								pnts[i] = p;
-							}
-							//recompute lods
-							auto& lod_generator = cgv::pointcloud::octree::ref_octree_lod_generator<pct::indexed_point>();
-							std::vector<indexed_point> new_pnts = std::move(lod_generator.generate_lods(pnts));
-							//rebuild chunk
-							ch->resize(new_pnts.size());
-							for (int i = 0; i < new_pnts.size(); ++i) {
-								LODPoint p;
-								p.position() = new_pnts[i].position();
-								p.color() = new_pnts[i].color();
-								p.level() = new_pnts[i].level();
-								ch->point_at(i) = p;
-								ch->id_at(i) = new_pnts[i].index;
-							}
-						}
-					}
-					chunked_points.upload_changes_to_buffers();
-				}
-				break;
-			}
-			case RGBDInputModeTools::ICP:
-			{
-				static constexpr float sphere_scale = 1.5f;
-
-				auto* pc_ptr = point_cloud_registration.get_point_cloud();
-				if (pc_ptr) {
-					auto& pc = *pc_ptr;
-					size_t nr_points = pc.get_nr_points();
-					box3 bounding_box;
-					mat4 reg_model_matrix = point_cloud_registration.model_matrix();
-					mat4 world_model_mat_f = (mat4)concat_mat;
-					mat4 transform = inv(concat_mat) * reg_model_matrix;
-					for (int i = 0; i < nr_points; ++i) {
-						bounding_box.add_point(transform * pc.pnt(i).lift());
-					}
-					float radius = sphere_scale * 0.5f * length(bounding_box.get_extent());
-					vec3 center = bounding_box.get_center();
-
-					std::vector<std::pair<const ivec3, chunk<LODPoint>*>> intersecting_chunks;
-					chunked_points.intersect_sphere(center, radius, intersecting_chunks);
-					point_cloud reg_source;
-
-					highlighted_chunks.clear();
-					for (auto& ic_pair : intersecting_chunks) {
-						auto& ch = *ic_pair.second;
-						int nr_points = ch.size();
-						for (int i = 0; i < nr_points; ++i) {
-							auto& pnt = ch.point_at(i).position();
-							if (length(pnt - center) <= radius)
-								reg_source.add_point(pnt);
-						}
-						//highlighted_chunks.emplace_back(ic_pair);
-					}
-
-					if (!point_cloud_registration.registration_thread_is_busy()) {
-						//run icp
-						point_cloud_registration.reg_async(reg_source, world_model_mat_f);
-						text_labels.update_label_text(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1], rgbd_input_help_text(rgbd_mode_tool, point_cloud_registration));
-						text_labels.place_label(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1],
-							right_tool_label_offset, tool_label_ori, CS_RIGHT_CONTROLLER, LA_LEFT, tool_label_scale);
-					}
-				}
-				break;
-			}
-			default:
-				std::cout << "not implemeneted\n";
-			}
-		}
-	} else if ((InteractionMode)interaction_mode == InteractionMode::LABELING) {
+	if ((InteractionMode)interaction_mode == InteractionMode::LABELING) {
 		if (point_editing_tool == pallete_tool::PT_PASTE) {
 			if (ci == 1)
 				paste_pointcloud_follow_controller = low_high; // make active copy paste pointcloud follow the controller if there was an low high transition
@@ -3185,16 +2833,6 @@ void pointcloud_cleaning_tool::on_update_gui()
 }
 
 void pointcloud_cleaning_tool::timer_event(double t, double dt) {
-	if ((InteractionMode)interaction_mode == InteractionMode::RGBD_INPUT) {
-		if (point_cloud_registration.reg_get_results()) {
-			auto mat = point_cloud_registration.model_matrix();
-			std::cout << "registration finished\n";
-			
-			text_labels.update_label_text(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1], rgbd_input_help_text(rgbd_mode_tool, point_cloud_registration));
-			text_labels.place_label(tool_help_label_id[(int)InteractionMode::RGBD_INPUT][1],
-				right_tool_label_offset, tool_label_ori, CS_RIGHT_CONTROLLER, LA_LEFT, tool_label_scale);
-		}
-	}
 
 	if (use_autopilot) {
 		const float* pose = vr_view_ptr->get_current_vr_state()->hmd.pose;
@@ -4656,13 +4294,7 @@ void pointcloud_cleaning_tool::update_interaction_mode(const InteractionMode im)
 		spacing_tool_enabled = false;
 	}
 	
-	if (im == InteractionMode::RGBD_INPUT) {
-		fetch_from_rgbd(true);
-	}
-	else {
-		fetch_from_rgbd(false);
-	}
-
+	
 	update_help_labels(im);
 	update_controller_labels();
 }

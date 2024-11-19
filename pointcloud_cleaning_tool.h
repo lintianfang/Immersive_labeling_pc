@@ -33,7 +33,6 @@
 #include "vr_labels.h"
 #include "world.h"
 #include "selection_tool.h"
-#include "hole_fill_ctrl_pts.h"
 #include "statistics_collection.h"
 #include "pointcloud_transformation_state.h"
 #include "point_cloud_registration_tool.h"
@@ -97,9 +96,6 @@ enum InteractionMode {
 	TELEPORT = 0,
 	LABELING = 1,
 	CONFIG = 2,
-	PUSHING = 3,
-	RGBD_INPUT = 4,
-	HOLE_FILL = 5,
 	NUM_OF_INTERACTIONS
 };
 
@@ -624,7 +620,6 @@ private:
 	int selection_touched_corner = -1;
 
 	// control points selection for hole filling
-	ctrl_pts ctrl_points_selection;
 	bool trigger_pressed = false;
 
 	pct::point_cloud_registration_tool point_cloud_registration;
