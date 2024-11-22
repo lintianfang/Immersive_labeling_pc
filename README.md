@@ -1,6 +1,9 @@
 An Immersive Lableing Method for Large Point Clouds.
 
-Our paper is accepted in the journal Computers & Graphics.
+<img width="1424" alt="Graphical_abstract" src="https://github.com/user-attachments/assets/e60ef5e1-9d7f-4328-a0c6-1289a146684a">
+
+
+Our paper is published in the journal of Computers & Graphics.
 
 Please cite using:
 
@@ -13,7 +16,7 @@ Please cite using:
   publisher={Elsevier}
 }
 
-Setup: Our method is implemented in C++ with OpenGL and OpenVR. Our test system was equipped with an Intel Core i7-9700F with 8×3.0GHz, 16 GB RAM and an Nvidia GeForce RTX 2080 with 8GB VRAM. Current button design is for HTC Vive Pro.
+Setup: Our method is implemented in C++ with OpenGL and OpenVR. Current button design is for HTC Vive Pro.
 
 Build Instructions:
 
@@ -28,10 +31,10 @@ How to use cgv framework:
 6. open the batch file define_platform.bat to set the win32 or 64
 7. check the configuration in the batch file show_system_variables.bat
 
-8. open the folder "plugins" to find the "vr_test", open the file
-9. in the folder "Immersive_labeling_pc", drag the pc_cleaning_tool.pj to ..\bin\geberate_makefiles.bat
+8. git clone "Immersive_labeling_pc" from current repo: https://github.com/lintianfang/Immersive_labeling_pc
+9. in the folder "Immersive_labeling_pc", drag the pc_labeling_tool.pj to ..\bin\geberate_makefiles.bat
 10. waiting for generateing makefiles, and then press any key to continue, the project should be open in vs automatically.
-11. please choose "Release DLL" before you build.
+11. please choose "Release DLL" or "Debug DLL" before you build.
 12. press f7 to build
 13. press Ctrl+f5 to run
 
