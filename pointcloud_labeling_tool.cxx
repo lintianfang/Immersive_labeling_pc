@@ -4600,7 +4600,7 @@ void pointcloud_labeling_tool::create_gui()
 	connect_copy(add_button("load label palette", "tooltip='load different palette labels and colors'")->click, rebind(this, &pointcloud_labeling_tool::on_load_palette_labels));
 	connect_copy(add_button("random lpc", "tooltip='create a random cube shaped point cloud'")->click, rebind(this, &pointcloud_labeling_tool::on_generate_large_pc_cb));
 
-	connect_copy(add_button("load_1")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_1_cb));
+	/*connect_copy(add_button("load_1")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_1_cb));
 	connect_copy(add_button("load_2")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_2_cb));
 	connect_copy(add_button("compare")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_cb));
 
@@ -4608,7 +4608,7 @@ void pointcloud_labeling_tool::create_gui()
 	connect_copy(add_button("load_pcs")->click, rebind(this, &pointcloud_labeling_tool::on_load_anno_pcs_cb));
 
 	connect_copy(add_button("loadCAD")->click, rebind(this, &pointcloud_labeling_tool::on_load_CAD_cb));
-	connect_copy(add_button("showmesh")->click, rebind(this, &pointcloud_labeling_tool::draw_mesh));
+	connect_copy(add_button("showmesh")->click, rebind(this, &pointcloud_labeling_tool::draw_mesh));*/
 	add_member_control(this, "adapt CLOD", adapt_clod, "check",
 		"tooltip='adapt the clod parameters to current point cloud and GPU'");
 	add_view("fps", frame_rate, "view");
@@ -4629,56 +4629,8 @@ void pointcloud_labeling_tool::create_gui()
 	connect_copy(add_button("colorize with height")->click, rebind(this, &pointcloud_labeling_tool::colorize_with_height));
 	connect_copy(add_button("print point cloud info")->click, rebind(this, &pointcloud_labeling_tool::print_point_cloud_info));
 
-	if (begin_tree_node("trajectory of HMD", tra_hmd)) {
-		align("\a");
-		connect_copy(add_button("traject")->click, rebind(this, &pointcloud_labeling_tool::on_traject_hmd_cb));
-		add_member_control(this, "draw_file_path", draw_file_path, "directory");
-		connect_copy(add_button("save hmd")->click, rebind(this, &pointcloud_labeling_tool::on_save_hmd_tra_cb));
-		align("\b");
-	}
-
 	if (begin_tree_node("Performance", gui_performance, gui_performance)) {
 		align("\a");
-		add_member_control(this, "performance stats", enable_performance_stats, "check",
-			"tooltip='enables recording of statistics'");
-		add_member_control(this, "window", sliding_window_size, "value_slider", 
-			"min=1;max=1000;log=false;ticks=true;tooltip='Size of the recording buffer used for statistics. The oldest value is replaced first.'");
-		add_member_control(this, "monitored eye", monitored_eye, "view", "min=0;max=2");
-		add_decorator("Average Render Times", "heading", "level=3");
-			add_view("reduce cpu[ms]", avg_reduce_time_cpu_view, "view","tooltip='Average time spend by the cpu preparing and starting the point reduction step'");
-			add_view("reduce gpu[ms]", avg_reduce_time_gpu_view, "view","tooltip='Average time spend by the gpu running the point reduction'");
-			add_view("draw[ms]", avg_draw_time_view, "view","tooltip='Average time needed by the gpu to render one frame'");
-
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_reduce_cpu_time_watch_file));
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_reduce_gpu_time_watch_file));
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_draw_time_watch_file));
-
-			add_view("reduce cpu time", reduce_cpu_time_watch_file_name, "view");
-			add_view("reduce log file", reduce_time_watch_file_name, "view");
-			add_view("draw log file", draw_time_watch_file_name, "view");
-
-			add_member_control(this, "enable1", log_reduce_cpu_time, "toggle");
-			add_member_control(this, "enable2", log_reduce_time, "toggle");
-			add_member_control(this, "enable3", log_draw_time, "toggle");
-
-		add_decorator("Labeling on CPU Side", "heading", "level=3");
-			add_view("average[ms]", avg_labeling_time_cpu, "view");
-			add_view("last[ms]", last_labeling_time_cpu, "view");
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_labeling_cpu_time_watch_file));
-			add_view(" CPU log file", labeling_cpu_watch_file_name, "view");
-			add_member_control(this, "enable", log_labeling_cpu_time, "toggle");
-
-		add_decorator("Labeling Shader / GPU", "heading", "level=3");
-			add_view("average[ms]", avg_labeling_time_gpu, "view");
-			add_view("last[ms]", last_labeling_time_gpu, "view");
-			connect_copy(add_button("set Time log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_labeling_time_watch_file));
-			add_view(" GPU log file", labeling_time_watch_file_name, "view");
-			add_member_control(this, "enable", log_labeling_gpu_time, "toggle");
-		add_decorator("FPS", "heading", "level=3");
-		connect_copy(add_button("set FPS log file")->click, rebind(this, &pointcloud_labeling_tool::on_set_fps_watch_file));
-		add_view(" FPS", fps_watch, "view");
-		add_view(" FPS log file", fps_watch_file_name, "view");
-		add_member_control(this, "enable", log_fps, "toggle");
 		align("\b");
 	}
 	if (begin_tree_node("Menubar", gui_menubar, gui_menubar)) {
@@ -4774,12 +4726,12 @@ void pointcloud_labeling_tool::create_gui()
 		align("\b");
 		end_tree_node(gui_marking);
 	}
-	if (begin_tree_node("RGBD Input", point_cloud_registration, false)) {
+	/*if (begin_tree_node("RGBD Input", point_cloud_registration, false)) {
 		align("\a");
 		add_gui("Registration Tool", this->point_cloud_registration);
 		align("\b");
 		end_tree_node(point_cloud_registration);
-	}
+	}*/
 	if (begin_tree_node("Manual Positioning", source_point_cloud)) {
 		add_member_control(this, "model scale", source_point_cloud.ref_point_cloud_scale(), "value_slider", "min=0.1;max=5.0;log=false;ticks=true");
 		add_member_control(this, "model position x", source_point_cloud.ref_point_cloud_position().x(), "value_slider", "min=-10.0;max=10.0;log=false;ticks=true");
@@ -4789,58 +4741,6 @@ void pointcloud_labeling_tool::create_gui()
 		add_member_control(this, "model rotation y", source_point_cloud.ref_point_cloud_rotation().y(), "value_slider", "min=0.0;max=360;log=false;ticks=true");
 		add_member_control(this, "model rotation z", source_point_cloud.ref_point_cloud_rotation().z(), "value_slider", "min=0.0;max=360;log=false;ticks=true");
 	}
-
-	if (begin_tree_node("Clipboard", clipboard_ptr)) {
-		connect_copy(add_button("add pointcloud")->click, rebind(this, &pointcloud_labeling_tool::on_add_point_cloud_to_clipboard));
-		connect_copy(add_button("clipboard pointcloud")->click, rebind(this, &pointcloud_labeling_tool::on_load_clipboard_point_cloud));
-	}
-
-	if (begin_tree_node("Tests", gui_tests)) {
-		connect_copy(add_button("test moving ponits")->click, rebind(this, &pointcloud_labeling_tool::test_moving_points));
-		connect_copy(add_button("registration tool point cloud")->click, rebind(this, &pointcloud_labeling_tool::on_registration_tool_load_point_cloud));
-		connect_copy(add_button("copy selected points")->click, rebind(this, &pointcloud_labeling_tool::on_copy_points));
-		connect_copy(add_button("fill clipboard")->click, rebind(this, &pointcloud_labeling_tool::test_fill_clipboard));
-		std::stringstream ss;
-		ss << "min=0;max=" << InteractionMode::NUM_OF_INTERACTIONS - 1 << ";log=false;ticks=true";
-		add_member_control(this, "interaction mode", interaction_mode, "value_slider", ss.str());
-
-
-		add_member_control(this, "label", picked_label, "value_input");
-
-		std::string mode_defs = "enums='replace=0;or=1;and=2;none=-1'";
-
-		add_member_control(this,"operation", (DummyEnum&)picked_label_operation, "dropdown", mode_defs);
-
-		connect_copy(add_button("update gui")->click, rebind(this, &pointcloud_labeling_tool::on_update_gui));
-		
-		connect_copy(add_button("test labeling of points")->click, rebind(this, &pointcloud_labeling_tool::test_labeling_of_points));
-		add_member_control(this, "radius (test)", radius_for_test_labeling, "value_slider", "min=0.1;max=100;log=false;ticks=true");
-		
-		if (begin_tree_node("Auto Pilot", true)) {
-			connect_copy(add_button("load path", "tooltip='Load a txt file containing way points.\n expected point format: x,y,z without spaces per line'")->click, rebind(this, &pointcloud_labeling_tool::on_auto_pilot_load_path));
-			add_member_control(this, "controller tip as reference", navigation_is_controller_path, "check", "tooltip='use a controller position instead of the hmd position as reference'");
-			add_member_control(this, "controller", navigation_selected_controller, "value", "tooltip='controller to use as reference if is controller path is ticked'");
-			add_gui("Auto Pilot", automated_navigation);
-			add_member_control(this, "enable", use_autopilot, "toggle");
-			add_member_control(this, "start_l", start_l, "toggle");
-			connect_copy(add_button("disable_chunks",
-				"tooltip='merge all points into an infinite chunk, this automatically enables skip frustum culling under the render settings'")->click, rebind(this, &pointcloud_labeling_tool::on_make_infinite_chunk));
-		}
-
-		if (begin_tree_node("Point Cloud", true, false, "level=2")) {
-			align("\a");
-			if (begin_tree_node("point style", point_style)) {
-				align("\a");
-				add_gui("point style", point_style);
-				align("\b");
-				end_tree_node(point_style);
-			}
-			align("\b");
-		}
-	}
-	/*auto stop_g = std::chrono::steady_clock::now();
-	std::chrono::duration<double> diff_g = stop_g - start_g;
-	std::cout << " diff_g: " << diff_g.count() << std::endl;*/
 }
 #include "lib_begin.h"
 #include <cgv/base/register.h>
