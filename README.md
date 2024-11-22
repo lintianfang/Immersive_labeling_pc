@@ -1,4 +1,4 @@
-An Immersive Lableing Method for Large Point Clouds.
+An Immersive Lableing Method for Large Point Clouds.（Currently we publish a test version, we will refine this repo in next weeks, thank you very much）
 
 <img width="1424" alt="Graphical_abstract" src="https://github.com/user-attachments/assets/e60ef5e1-9d7f-4328-a0c6-1289a146684a">
 
