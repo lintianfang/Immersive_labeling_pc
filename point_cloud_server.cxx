@@ -699,7 +699,6 @@ void pct::point_cloud_server::label_points_in_box(const GLint label, const GLint
 		}
 	}
 
-	std::cout << "number of chunks intersected: " << chunks.size() << std::endl;
 	constexpr int points_pos = 1, index_pos = 2, labels_pos = 6, point_id_pos = 4;
 
 	mat4 float_trans_matrix = concat_trans;
@@ -782,7 +781,6 @@ void pct::point_cloud_server::label_points_by_clipping(const GLint label, const 
 	else
 		chunked_points.get_all(chunks);
 
-	std::cout << "number of chunks intersected: " << chunks.size() << std::endl;
 
 	labeling_tool_prog.set_uniform(*ctx_ptr, "point_label", label, true);
 	labeling_tool_prog.set_uniform(*ctx_ptr, "model_transform", concat_trans_f, true);

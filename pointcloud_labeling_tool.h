@@ -694,7 +694,7 @@ private:
 
 	bool show_text_labels = true;
 	bool show_controller_labels = true;
-	bool show_left_bar = true;
+	bool show_left_bar = false;
 	/// stores text labels (text labels means visible text for the user. Not to confuse with point labels)
 	vr_labels text_labels;
 	/// contains label ids of currently active help text labels

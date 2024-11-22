@@ -7,7 +7,7 @@ addProjectDirs=[CGV_DIR."/plugins", CGV_DIR."/libs", CGV_DIR."/test", CGV_DIR."/
 addProjectDeps=["cgv_utils","cgv_type","cgv_data","cgv_base", "cgv_signal", "cgv_reflect", "cgv_media", "cgv_os", "cgv_gui", "cgv_render", 
                 "cgv_viewer","cgv_gl", "cg_fltk", "cg_ext", "cmi_io", "cmv_avi", "crg_grid", "glew",
 				"point_cloud","crg_vr_view","cg_vr","vr_emulator","openvr_driver",
-				"rect_pack", "rgbd_control_no_interactor", "cgv_math"
+				"rect_pack", "cgv_math"
 ];
 addDependencies=["opengl", "glu"];
 addSharedDefines=["POINTCLOUD_LABELING_TOOL_EXPORTS"];
