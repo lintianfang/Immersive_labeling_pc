@@ -4600,15 +4600,6 @@ void pointcloud_labeling_tool::create_gui()
 	connect_copy(add_button("load label palette", "tooltip='load different palette labels and colors'")->click, rebind(this, &pointcloud_labeling_tool::on_load_palette_labels));
 	connect_copy(add_button("random lpc", "tooltip='create a random cube shaped point cloud'")->click, rebind(this, &pointcloud_labeling_tool::on_generate_large_pc_cb));
 
-	/*connect_copy(add_button("load_1")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_1_cb));
-	connect_copy(add_button("load_2")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_2_cb));
-	connect_copy(add_button("compare")->click, rebind(this, &pointcloud_labeling_tool::on_load_comparison_point_cloud_cb));
-
-	connect_copy(add_button("load_ori")->click, rebind(this, &pointcloud_labeling_tool::on_load_ori_pc_cb));
-	connect_copy(add_button("load_pcs")->click, rebind(this, &pointcloud_labeling_tool::on_load_anno_pcs_cb));
-
-	connect_copy(add_button("loadCAD")->click, rebind(this, &pointcloud_labeling_tool::on_load_CAD_cb));
-	connect_copy(add_button("showmesh")->click, rebind(this, &pointcloud_labeling_tool::draw_mesh));*/
 	add_member_control(this, "adapt CLOD", adapt_clod, "check",
 		"tooltip='adapt the clod parameters to current point cloud and GPU'");
 	add_view("fps", frame_rate, "view");
@@ -4633,11 +4624,7 @@ void pointcloud_labeling_tool::create_gui()
 		align("\a");
 		align("\b");
 	}
-	if (begin_tree_node("Menubar", gui_menubar, gui_menubar)) {
-		align("\a");
-		
-		align("\b");
-	}
+	
 	if (begin_tree_node("Teleport", gui_teleport, gui_teleport)) {
 		align("\a");
 		add_member_control(this, "radius", teleport_spere_radius_factor, "value_slider", "min=0.0f;max=0.2f;log=false;ticks=true");
@@ -4726,12 +4713,7 @@ void pointcloud_labeling_tool::create_gui()
 		align("\b");
 		end_tree_node(gui_marking);
 	}
-	/*if (begin_tree_node("RGBD Input", point_cloud_registration, false)) {
-		align("\a");
-		add_gui("Registration Tool", this->point_cloud_registration);
-		align("\b");
-		end_tree_node(point_cloud_registration);
-	}*/
+
 	if (begin_tree_node("Manual Positioning", source_point_cloud)) {
 		add_member_control(this, "model scale", source_point_cloud.ref_point_cloud_scale(), "value_slider", "min=0.1;max=5.0;log=false;ticks=true");
 		add_member_control(this, "model position x", source_point_cloud.ref_point_cloud_position().x(), "value_slider", "min=-10.0;max=10.0;log=false;ticks=true");
