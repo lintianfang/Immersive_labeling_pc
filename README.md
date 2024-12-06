@@ -7,14 +7,14 @@ Our paper is published in the journal of Computers & Graphics. The paper can be 
 
 Please cite using:
 
-@article{lin2024immersive,
-  title={An immersive labeling method for large point clouds},
-  author={Lin, Tianfang and Yu, Zhongyuan and McGinity, Matthew and Gumhold, Stefan},
-  journal={Computers \& Graphics},
-  pages={104101},
-  year={2024},
-  publisher={Elsevier}
-}
+    @article{lin2024immersive,
+      title={An immersive labeling method for large point clouds},
+      author={Lin, Tianfang and Yu, Zhongyuan and McGinity, Matthew and Gumhold, Stefan},
+      journal={Computers \& Graphics},
+      pages={104101},
+      year={2024},
+      publisher={Elsevier}
+    }
 
 Setup: Our method is implemented in C++ with OpenGL and OpenVR. Current button design is for HTC Vive Pro.
 
