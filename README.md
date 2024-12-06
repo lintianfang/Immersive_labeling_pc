@@ -3,7 +3,7 @@ An Immersive Lableing Method for Large Point Clouds.（Currently we publish a te
 <img width="1424" alt="Graphical_abstract" src="https://github.com/user-attachments/assets/e60ef5e1-9d7f-4328-a0c6-1289a146684a">
 
 
-Our paper is published in the journal of Computers & Graphics. The paper link: https://www.sciencedirect.com/science/article/pii/S009784932400236X
+Our paper is published in the journal of Computers & Graphics. The paper can be accessed via the [link](https://www.sciencedirect.com/science/article/pii/S009784932400236X).
 
 Please cite using:
 
@@ -18,13 +18,13 @@ Please cite using:
 
 Setup: Our method is implemented in C++ with OpenGL and OpenVR. Current button design is for HTC Vive Pro.
 
-Build Instructions:
+**Build Instructions:**
 
-**Using the Integrated Build System (Windows only). Currently, the Immersive Labeling works best on Windows. A Visual Studio project for building can be generated via the dedicated build system of the CGV Framework via: https://github.com/sgumhold/cgv/tree/develop-rgbd. Please choose develop-rgbd branch.
+Using the Integrated Build System (Windows only). Currently, the Immersive Labeling works best on Windows. A Visual Studio project for building can be generated via the dedicated build system of the CGV Framework via: https://github.com/sgumhold/cgv/tree/develop-rgbd. Please choose develop-rgbd branch.
 
-Recommended IDE: Visual Studio 2019 or 2022.**
+Recommended IDE: Visual Studio 2019 or 2022.
 
-How to use cgv framework:
+**How to use cgv framework:**
 1. create a new folder "develop"
 2. create two subfolders in the folder "develop", one is "build", another is "projects"
 3. in the subfolder "projects", git clone https://github.com/sgumhold/cgv.git, please choose develop-rgbd branch.
@@ -40,5 +40,5 @@ How to use cgv framework:
 12. press f7 to build
 13. press Ctrl+f5 to run
 
-License: Our code is supported with MIT license.
+**License: Our code is supported with MIT license.**
 
