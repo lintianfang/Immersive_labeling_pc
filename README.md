@@ -3,7 +3,7 @@ An Immersive Lableing Method for Large Point Clouds.（Currently we publish a te
 <img width="1424" alt="Graphical_abstract" src="https://github.com/user-attachments/assets/e60ef5e1-9d7f-4328-a0c6-1289a146684a">
 
 
-Our paper is published in the journal of Computers & Graphics.
+Our paper is published in the journal of Computers & Graphics. The paper link: https://www.sciencedirect.com/science/article/pii/S009784932400236X
 
 Please cite using:
 
