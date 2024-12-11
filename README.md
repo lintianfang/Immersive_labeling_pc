@@ -46,3 +46,7 @@ Recommended IDE: Visual Studio 2019 or 2022.
 
 **License: Our code is supported with MIT license.**
 
+**许可证： 我们的代码采用 MIT 许可。**
+
+**ライセンス： 私たちのコードはMITライセンスでサポートされています。**
+
