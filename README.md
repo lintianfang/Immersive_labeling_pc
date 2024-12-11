@@ -1,5 +1,7 @@
 An Immersive Lableing Method for Large Point Clouds.（Currently we publish a test version, we will refine this repo in next weeks, thank you very much）
+
 一种大型点云的沉浸式标注方法。
+
 大規模点群に対する没入型注釈方法。
 
 <img width="1424" alt="Graphical_abstract" src="https://github.com/user-attachments/assets/e60ef5e1-9d7f-4328-a0c6-1289a146684a">
