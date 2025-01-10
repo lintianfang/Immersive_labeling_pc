@@ -31,7 +31,7 @@ Recommended IDE: Visual Studio 2019 or 2022.
 **How to use cgv framework:**
 1. create a new folder "develop"
 2. create two subfolders in the folder "develop", one is "build", another is "projects"
-3. in the subfolder "projects", git clone [https://github.com/sgumhold/cgv.git](https://github.com/lintianfang/cgv.git), please choose develop-rgbd branch.
+3. in the subfolder "projects", git clone [https://github.com/sgumhold/cgv/tree/develop-rgbd](https://github.com/lintianfang/cgv.git), please choose develop-rgbd branch.
 4. open the folder "develop", drag the "projects" to define_project_dir.bat
 5. drag the "build" folder to define_system_variables.bat
 6. open the batch file define_platform.bat to set the win32 or 64
