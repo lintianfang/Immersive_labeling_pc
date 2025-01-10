@@ -24,7 +24,7 @@ Setup: Our method is implemented in C++ with OpenGL and OpenVR. Current button d
 
 **Build Instructions:**
 
-Using the Integrated Build System (Windows only). Currently, the Immersive Labeling works best on Windows. A Visual Studio project for building can be generated via the dedicated build system of the CGV Framework via: https://github.com/sgumhold/cgv/tree/develop-rgbd. Please choose develop-rgbd branch.
+Using the Integrated Build System (Windows only). Currently, the Immersive Labeling works best on Windows. A Visual Studio project for building can be generated via the dedicated build system of the CGV Framework via: [https://github.com/sgumhold/cgv/tree/develop-rgbd](https://github.com/lintianfang/cgv.git). Please choose develop-rgbd branch.
 
 Recommended IDE: Visual Studio 2019 or 2022.
 
